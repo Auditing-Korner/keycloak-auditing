@@ -68,6 +68,21 @@ Artifacts written to `audit-output/` by default:
 - `targets.txt`: Targets composed from wordlists
 - `exploitation.json`: Exploitation attempts/results
 - `report.md` and `report.json`: Consolidated report
+- `report.html`: Interactive HTML report with charts
+- `report.sarif`: SARIF format for CI/CD integration
+
+## Report Formats
+Generate different report formats:
+```bash
+# All formats (default)
+keycloak-auditor --base-url https://kc.example.com --realm master report
+
+# HTML only (interactive with charts)
+keycloak-auditor --base-url https://kc.example.com --realm master report --format html
+
+# SARIF for CI/CD integration
+keycloak-auditor --base-url https://kc.example.com --realm master report --format sarif
+```
 
 ## Extending the Framework
 - Add Nuclei templates under `nuclei-templates/` and rerun scans.

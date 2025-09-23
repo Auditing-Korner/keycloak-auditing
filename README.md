@@ -104,6 +104,18 @@ Performance and safety flags:
 - `--nuclei-ai`: enable Nuclei AI (experimental)
 - `--nuclei-ai-prompt`: custom prompt to guide AI
 
+Generate reports in different formats:
+```bash
+# All formats (default)
+keycloak-auditor --base-url https://kc.example.com --realm master report
+
+# HTML only (interactive with charts)
+keycloak-auditor --base-url https://kc.example.com --realm master report --format html
+
+# SARIF for CI/CD integration
+keycloak-auditor --base-url https://kc.example.com --realm master report --format sarif
+```
+
 See [CLI Reference](docs/reference.md) for all options.
 
 ## Configuration & Performance
@@ -135,6 +147,8 @@ The scanner composes target URLs into `audit-output/targets.txt` and uses `-l` f
 - `audit-output/nuclei.json`, `audit-output/nuclei.jsonl`, `audit-output/targets.txt`
 - `audit-output/exploitation.json`
 - `audit-output/report.md`, `audit-output/report.json`
+- `audit-output/report.html` (interactive with charts)
+- `audit-output/report.sarif` (for CI/CD integration)
 
 ## Support Matrix
 - Keycloak: modern versions 18+ (tested primarily against 20+). Older endpoints may differ.

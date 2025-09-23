@@ -14,6 +14,11 @@
 - `--timeout INTEGER` (default: 15)
 - `--retries INTEGER` (default: 2)
 - `--insecure`
+- `--workflow`: Use nuclei workflow if available
+- `--nuclei-ai`: Enable nuclei AI (experimental)
+- `--nuclei-ai-prompt TEXT`: Custom AI prompt
+- `--nuclei-severity TEXT`: Filter by severity (e.g. critical,high,medium)
+- `--nuclei-tags TEXT`: Filter by tags (comma-separated)
 - `--out PATH` (default: audit-output)
 
 ## Commands
@@ -21,4 +26,6 @@
 - `audit`: Run configuration audit checks
 - `scan [--workflow]`: Run Nuclei scans
 - `exploit`: Attempt safe exploitation
-- `report`: Generate Markdown and JSON reports
+- `report [--format]`: Generate reports (markdown/html/sarif/all)
+- `full [--workflow]`: Run complete pipeline
+- `selftest [--pytest-args]`: Run test suite
