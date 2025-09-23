@@ -1,3 +1,18 @@
+Metadata-Version: 2.4
+Name: keycloak-auditor
+Version: 0.1.0
+Summary: Modular Keycloak security auditing framework with Nuclei integration
+Author: RFS Team
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests>=2.32.3
+Requires-Dist: click>=8.1.7
+Requires-Dist: rich>=13.7.1
+Requires-Dist: pydantic>=2.8.2
+Requires-Dist: jinja2>=3.1.4
+Dynamic: license-file
+
 # keycloak-auditing
 
 A modular Python framework to audit the security of Keycloak. It integrates Nuclei workflows/templates with automated enumeration, audit checks, vulnerability scanning, safe exploitation, and final report generation.
@@ -61,27 +76,29 @@ Basic help:
 keycloak-auditor --help
 ```
 
-Run full pipeline (end-to-end):
+Run core workflow (adjust URL/realm):
 ```bash
 keycloak-auditor \
   --base-url https://kc.example.com \
   --realm master \
-  --nuclei-templates nuclei-templates \
-  full --workflow
-```
+  --out audit-output enumerate
 
-Run individual stages:
-```bash
-keycloak-auditor --base-url https://kc.example.com --realm master enumerate
-keycloak-auditor --base-url https://kc.example.com --realm master audit
-keycloak-auditor --base-url https://kc.example.com --realm master --nuclei-templates nuclei-templates scan --workflow
-keycloak-auditor --base-url https://kc.example.com --realm master exploit
-keycloak-auditor --base-url https://kc.example.com --realm master report
-```
+keycloak-auditor \
+  --base-url https://kc.example.com \
+  --realm master audit
 
-Run test suite:
-```bash
-keycloak-auditor selftest --pytest-args "-q"
+keycloak-auditor \
+  --base-url https://kc.example.com \
+  --realm master \
+  --nuclei-templates nuclei-templates scan --workflow
+
+keycloak-auditor \
+  --base-url https://kc.example.com \
+  --realm master exploit
+
+keycloak-auditor \
+  --base-url https://kc.example.com \
+  --realm master report
 ```
 
 Authenticated enumeration (client credentials):

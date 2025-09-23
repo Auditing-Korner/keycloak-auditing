@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import click
@@ -141,6 +143,59 @@ def report_cmd(ctx):
 		reporter = ReportGenerator(config)
 		output = reporter.generate()
 	console.print(f"[bold]Report generated at[/bold] {output}")
+
+
+@main.command()
+@click.option("--workflow", is_flag=True, help="Use nuclei workflow if available in templates")
+@click.pass_context
+def full(ctx, workflow):
+	"""Run full pipeline: enumerate -> audit -> scan -> exploit -> report."""
+	config: AuditorConfig = ctx.obj["config"]
+	console.rule("[bold green]Full Pipeline")
+	# Enumerate
+	with console.status("Enumerating..."):
+		enumr = KeycloakEnumerator(config)
+		enum_res = enumr.run()
+	(Path(config.output_dir) / "enumeration.json").write_text(json.dumps(enum_res, indent=2))
+	# Audit
+	with console.status("Auditing..."):
+		auditor = AuditRunner(config)
+		audit_res = auditor.run()
+	(Path(config.output_dir) / "audit.json").write_text(json.dumps(audit_res, indent=2))
+	# Scan
+	with console.status("Scanning (Nuclei)..."):
+		scanner = NucleiScanner(config)
+		scan_res = scanner.run(use_workflow=workflow)
+	(Path(config.output_dir) / "nuclei.json").write_text(json.dumps(scan_res, indent=2))
+	# Exploit
+	with console.status("Running safe exploitation..."):
+		exp = ExploitationRunner(config)
+		exploit_res = exp.run()
+	(Path(config.output_dir) / "exploitation.json").write_text(json.dumps(exploit_res, indent=2))
+	# Report
+	with console.status("Generating report..."):
+		reporter = ReportGenerator(config)
+		report_path = reporter.generate()
+	console.print(Panel.fit(f"[bold]Report ready:[/bold] {report_path}", border_style="green"))
+	# Summaries
+	_print_findings_table("Audit Findings", audit_res)
+	_print_findings_table("Nuclei Findings", scan_res)
+	_print_findings_table("Exploitation Attempts", exploit_res)
+
+
+@main.command()
+@click.option("--pytest-args", default="-q", show_default=True, help="Additional pytest args")
+@click.pass_context
+def selftest(ctx, pytest_args):
+	"""Run the framework's test suite (pytest)."""
+	cmd = [sys.executable, "-m", "pytest"] + pytest_args.split()
+	console.print(Panel.fit("Running tests...", border_style="blue"))
+	proc = subprocess.run(" ".join(cmd), shell=True)
+	if proc.returncode == 0:
+		console.print("[bold green]All tests passed[/bold green]")
+	else:
+		console.print(f"[bold red]Tests failed with code {proc.returncode}[/bold red]")
+		sys.exit(proc.returncode)
 
 
 if __name__ == "__main__":

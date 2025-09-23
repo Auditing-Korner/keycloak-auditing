@@ -1,0 +1,9 @@
+[
+  {
+    "id": "nuclei_missing",
+    "info": {
+      "name": "Nuclei binary not found"
+    },
+    "severity": "info"
+  }
+]

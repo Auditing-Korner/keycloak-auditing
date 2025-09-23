@@ -58,6 +58,10 @@ class NucleiScanner:
 			"-timeout",
 			str(self.config.http_timeout_seconds),
 		]
+		# Auth header if token provided
+		if self.config.token:
+			cmd.extend(["-H", f"Authorization: Bearer {self.config.token}"])
+
 		# targets
 		targets_list: Path | None = None
 		if self.config.use_wordlists:

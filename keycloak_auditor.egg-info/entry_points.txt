@@ -1,0 +1,2 @@
+[console_scripts]
+keycloak-auditor = keycloak_auditor.cli:main
