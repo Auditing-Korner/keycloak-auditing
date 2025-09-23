@@ -1,0 +1,278 @@
+# Keycloak and IAM Subdomain Patterns
+# Specialized wordlist for Keycloak identity management infrastructure
+
+# Core Keycloak Terms
+keycloak
+auth
+authentication
+authorization
+identity
+iam
+sso
+oauth
+oidc
+saml
+ldap
+ad
+activedirectory
+
+# Keycloak Services
+keycloak-server
+keycloak-service
+keycloak-auth
+auth-server
+auth-service
+identity-server
+identity-service
+sso-server
+sso-service
+
+# Environment Variations
+keycloak-prod
+keycloak-production
+keycloak-dev
+keycloak-development
+keycloak-test
+keycloak-testing
+keycloak-stage
+keycloak-staging
+keycloak-demo
+keycloak-sandbox
+
+# Regional/Deployment Variations
+keycloak-eu
+keycloak-us
+keycloak-asia
+keycloak-west
+keycloak-east
+keycloak-north
+keycloak-south
+keycloak-region1
+keycloak-region2
+
+# Administration and Management
+admin-keycloak
+keycloak-admin
+keycloak-console
+console-keycloak
+keycloak-mgmt
+mgmt-keycloak
+keycloak-management
+management-keycloak
+
+# Authentication Flows
+login
+logout
+signin
+signout
+register
+registration
+forgot
+reset
+password
+pwd
+recovery
+
+# OAuth/OIDC Related
+oauth2
+oauth-server
+oidc-server
+token
+tokens
+authorize
+callback
+redirect
+client
+clients
+
+# SAML Related
+saml
+saml2
+samlp
+idp
+sp
+metadata
+federation
+
+# LDAP Integration
+ldap-server
+ldap-auth
+ad-auth
+directory
+user-directory
+employee-directory
+
+# API and Services
+api-auth
+auth-api
+keycloak-api
+api-keycloak
+service-auth
+auth-service
+identity-api
+api-identity
+
+# Load Balancing and Clustering
+keycloak-lb
+lb-keycloak
+keycloak-cluster
+cluster-keycloak
+keycloak-node1
+keycloak-node2
+keycloak-node3
+
+# Database Integration
+keycloak-db
+db-keycloak
+keycloak-postgres
+keycloak-mysql
+keycloak-oracle
+keycloak-mariadb
+
+# Monitoring and Logging
+keycloak-monitor
+monitor-keycloak
+keycloak-metrics
+metrics-keycloak
+keycloak-logs
+logs-keycloak
+
+# Security and Certificates
+keycloak-ssl
+ssl-keycloak
+keycloak-tls
+tls-keycloak
+keycloak-cert
+cert-keycloak
+
+# Cloud and Container Deployments
+keycloak-k8s
+k8s-keycloak
+keycloak-docker
+docker-keycloak
+keycloak-cloud
+cloud-keycloak
+keycloak-aws
+aws-keycloak
+keycloak-azure
+azure-keycloak
+keycloak-gcp
+gcp-keycloak
+
+# Legacy and Alternative Names
+jboss-auth
+wildfly-auth
+rhsso
+red-hat-sso
+rh-sso
+
+# Version Specific
+keycloak-v12
+keycloak-v13
+keycloak-v14
+keycloak-v15
+keycloak-v16
+keycloak-v17
+keycloak-v18
+keycloak-v19
+keycloak-v20
+keycloak-latest
+
+# Application Integration
+app-auth
+mobile-auth
+web-auth
+api-gateway-auth
+microservice-auth
+
+# User Management
+users
+user-mgmt
+user-management
+profile
+profiles
+account
+accounts
+my-account
+self-service
+
+# Federation and External Identity
+federation
+external-idp
+social-login
+google-auth
+facebook-auth
+github-auth
+linkedin-auth
+microsoft-auth
+twitter-auth
+
+# Backup and DR
+keycloak-backup
+backup-keycloak
+keycloak-dr
+dr-keycloak
+keycloak-replica
+replica-keycloak
+
+# Development Tools
+keycloak-sdk
+sdk-keycloak
+keycloak-cli
+cli-keycloak
+keycloak-tools
+tools-keycloak
+
+# Multi-tenant
+tenant1-auth
+tenant2-auth
+org1-auth
+org2-auth
+client1-auth
+client2-auth
+
+# Protocol Specific
+openid
+openid-connect
+oauth2-server
+saml-idp
+saml-sp
+ws-federation
+cas
+cas-server
+
+# Security Testing
+keycloak-security
+security-keycloak
+keycloak-audit
+audit-keycloak
+keycloak-pentest
+pentest-keycloak
+
+# Integration Patterns
+keycloak-proxy
+proxy-keycloak
+keycloak-gateway
+gateway-keycloak
+keycloak-broker
+broker-keycloak
+
+# Realm Specific (Common Realm Names)
+master-auth
+admin-auth
+internal-auth
+external-auth
+employee-auth
+customer-auth
+partner-auth
+vendor-auth
+
+# Mobile and Device
+mobile-sso
+device-auth
+iot-auth
+android-auth
+ios-auth
+windows-auth
+macos-auth
+linux-auth

@@ -1,0 +1,128 @@
+# Keycloak Configuration Exposure
+# Detects exposed Keycloak configuration files and sensitive information
+
+id: keycloak-configuration-exposure
+
+info:
+  name: Keycloak Configuration Exposure
+  author: H1/rfs85
+  severity: medium
+  description: Detects exposed Keycloak configuration files and sensitive settings
+  reference:
+    - https://www.keycloak.org/docs/latest/server_installation/
+  tags: keycloak,config,exposure,information-disclosure
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/standalone.xml"
+      - "{{BaseURL}}/domain.xml"
+      - "{{BaseURL}}/keycloak-server.json"
+      - "{{BaseURL}}/standalone/configuration/standalone.xml"
+      - "{{BaseURL}}/domain/configuration/domain.xml"
+      - "{{BaseURL}}/WEB-INF/keycloak-server.json"
+      - "{{BaseURL}}/WEB-INF/web.xml"
+      - "{{BaseURL}}/META-INF/keycloak-server.json"
+      - "{{BaseURL}}/conf/keycloak.conf"
+      - "{{BaseURL}}/config/keycloak.properties"
+      - "{{BaseURL}}/keycloak.properties"
+      - "{{BaseURL}}/application.properties"
+      - "{{BaseURL}}/bootstrap.properties"
+      - "{{BaseURL}}/jboss-cli.xml"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "keycloak"
+          - "datasource"
+          - "connection-url"
+          - "jndi-name"
+          - "security-domain"
+          - "realm-name"
+        condition: or
+
+      - type: word
+        part: body
+        words:
+          - "<?xml"
+          - "configuration"
+        condition: and
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: regex
+        name: database_info
+        part: body
+        regex:
+          - "connection-url.*?jdbc:([^\"<]+)"
+          - "user-name.*?>([^<]+)"
+          - "password.*?>([^<]+)"
+
+      - type: regex
+        name: security_settings
+        part: body
+        regex:
+          - "security-domain.*?>([^<]+)"
+          - "realm.*?>([^<]+)"
+          - "login-module.*?>([^<]+)"
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/deployments/"
+      - "{{BaseURL}}/standalone/deployments/"
+      - "{{BaseURL}}/domain/servers/"
+      - "{{BaseURL}}/tmp/"
+      - "{{BaseURL}}/log/"
+      - "{{BaseURL}}/data/"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "Index of"
+          - "Directory listing"
+          - "Parent Directory"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: regex
+        name: exposed_files
+        part: body
+        regex:
+          - "href=\"([^\"]*\\.(?:xml|properties|conf|json|log))\"";
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/realms/master/clients-registrations/openid-connect"
+      - "{{BaseURL}}/realms/master/clients-registrations/openid-connect"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "client_id"
+          - "client_secret"
+          - "registration_access_token"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+          - 405
+
+    extractors:
+      - type: json
+        name: client_registration
+        part: body
+        json:
+          - ".client_id"
+          - ".client_secret"
+          - ".registration_access_token"

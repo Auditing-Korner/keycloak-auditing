@@ -1,0 +1,81 @@
+# Keycloak Security Assessment Workflow
+# Comprehensive workflow combining multiple Keycloak security checks
+
+id: keycloak-security-workflow
+
+info:
+  name: Keycloak Comprehensive Security Assessment
+  author: H1/rfs85
+  severity: info
+  description: Complete security assessment workflow for Keycloak installations
+  reference:
+    - https://www.keycloak.org/docs/latest/securing_apps/
+  tags: keycloak,workflow,security-assessment
+
+workflow:
+  - template: keycloak-version-detection.yaml
+    subtemplates:
+      - tags: keycloak,version
+
+  - template: keycloak-admin-console.yaml
+    subtemplates:
+      - tags: keycloak,admin
+    matchers:
+      - name: admin-console-found
+        type: dsl
+        dsl:
+          - "len(body) > 0"
+
+  - template: keycloak-realm-enumeration.yaml
+    subtemplates:
+      - tags: keycloak,realm
+    matchers:
+      - name: realms-found
+        type: dsl
+        dsl:
+          - "len(body) > 0"
+
+  - template: keycloak-configuration-exposure.yaml
+    subtemplates:
+      - tags: keycloak,config
+    matchers:
+      - name: config-exposed
+        type: dsl
+        dsl:
+          - "len(body) > 0"
+
+  - template: keycloak-authentication-bypass.yaml
+    subtemplates:
+      - tags: keycloak,bypass
+    matchers:
+      - name: bypass-possible
+        type: dsl
+        dsl:
+          - "len(body) > 0"
+
+  - template: keycloak-user-enumeration.yaml
+    subtemplates:
+      - tags: keycloak,user-enum
+    matchers:
+      - name: users-enumerated
+        type: dsl
+        dsl:
+          - "len(body) > 0"
+
+  - template: keycloak-jwt-vulnerabilities.yaml
+    subtemplates:
+      - tags: keycloak,jwt
+    matchers:
+      - name: jwt-issues
+        type: dsl
+        dsl:
+          - "len(body) > 0"
+
+  - template: keycloak-ldap-injection.yaml
+    subtemplates:
+      - tags: keycloak,ldap
+    matchers:
+      - name: ldap-vulnerable
+        type: dsl
+        dsl:
+          - "len(body) > 0"

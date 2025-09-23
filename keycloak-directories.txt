@@ -1,0 +1,335 @@
+# Keycloak Directories and Paths Wordlist
+# Comprehensive list for directory fuzzing on Keycloak installations
+
+# Core Keycloak Paths
+auth
+auth/
+auth/admin
+auth/admin/
+auth/realms
+auth/realms/
+auth/js
+auth/resources
+auth/welcome
+
+# Admin Console Paths
+admin
+admin/
+admin/master
+admin/master/console
+admin/console
+console
+console/
+management
+mgmt
+
+# Realm-Related Paths
+realms
+realms/
+realm
+master
+master/
+well-known
+.well-known
+openid_configuration
+openid-configuration
+
+# Authentication Endpoints
+login
+logout
+signin
+signout
+authenticate
+authorize
+token
+tokens
+refresh
+revoke
+introspect
+userinfo
+certs
+keys
+
+# Registration and Self-Service
+register
+registration
+account
+account/
+self-service
+profile
+password
+forgot
+reset
+recovery
+
+# OAuth/OIDC Endpoints
+oauth
+oauth/
+oauth2
+oauth2/
+oidc
+openid
+callback
+redirect
+clients
+client-registration
+
+# SAML Endpoints
+saml
+saml/
+saml2
+metadata
+descriptor
+sso
+sls
+logout-service
+artifact
+
+# API Endpoints
+api
+api/
+rest
+rest/
+resources
+resources/
+services
+admin/realms
+admin/users
+admin/clients
+admin/roles
+
+# Static Resources
+js
+js/
+css
+css/
+images
+img
+fonts
+resources
+resources/
+themes
+themes/
+static
+assets
+
+# Configuration and Setup
+config
+configuration
+setup
+install
+installer
+welcome
+welcome/
+
+# Documentation
+docs
+documentation
+help
+manual
+guide
+readme
+
+# Health and Monitoring
+health
+status
+metrics
+info
+version
+ping
+alive
+ready
+actuator
+actuator/health
+
+# Database and Persistence
+database
+db
+h2-console
+liquibase
+flyway
+
+# Clustering and Management
+cluster
+jgroups
+infinispan
+management
+wildfly
+
+# Security and Certificates
+security
+certs
+certificates
+keys
+keystore
+truststore
+ssl
+tls
+
+# Backup and Export
+backup
+export
+import
+migration
+
+# Development and Testing
+test
+testing
+dev
+development
+debug
+sandbox
+
+# Error Pages
+error
+errors
+404
+403
+500
+
+# Legacy Paths (older Keycloak versions)
+auth/realms/master/protocol/openid-connect
+auth/realms/master/protocol/saml
+auth/realms/master/.well-known/openid_configuration
+auth/admin/master/console/
+auth/admin/realms
+auth/js/keycloak.js
+
+# Protocol Specific Paths
+protocol
+protocol/
+protocol/openid-connect
+protocol/saml
+protocol/cas
+
+# User Federation
+user-storage
+user-federation
+ldap
+kerberos
+sssd
+
+# Identity Providers
+identity-provider
+idp
+broker
+social
+
+# Client Adapters
+adapters
+adapter-config
+
+# Extensions and SPI
+extensions
+providers
+spi
+
+# Logs and Audit
+logs
+log
+audit
+events
+
+# Mobile and Device Flow
+device
+device-code
+mobile
+
+# WebAuthn/FIDO2
+webauthn
+fido2
+authenticators
+
+# Custom Themes
+themes/
+themes/base
+themes/keycloak
+themes/custom
+
+# Maven/Gradle Build Artifacts
+target
+build
+dist
+lib
+WEB-INF
+META-INF
+
+# Common Web Paths
+index
+index.html
+index.jsp
+home
+main
+default
+
+# Upload/Download
+upload
+download
+files
+attachments
+
+# Cache
+cache
+temp
+tmp
+temporary
+
+# Configuration Files (without extensions)
+keycloak
+keycloak-server
+standalone
+domain
+jboss-cli
+standalone-ha
+host
+
+# Deployment Specific
+deployments
+modules
+bin
+conf
+
+# JBoss/WildFly Specific
+jboss
+wildfly
+undertow
+elytron
+
+# Container/Kubernetes
+k8s
+kubernetes
+docker
+containers
+
+# Load Balancer Health Checks
+health-check
+healthcheck
+lb-check
+
+# Monitoring Tools Integration
+prometheus
+grafana
+jaeger
+zipkin
+
+# Backup Tools
+pg_dump
+mysqldump
+backup-scripts
+
+# Security Scanning
+pentest
+security-scan
+vulnerability
+
+# Integration Paths
+integration
+connectors
+hooks
+webhooks
+
+# Custom Applications
+apps
+applications
+portals
+dashboards

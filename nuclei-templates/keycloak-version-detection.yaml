@@ -1,0 +1,54 @@
+# Keycloak Version Detection Nuclei Template
+# Detects Keycloak version and build information
+
+id: keycloak-version-detection
+
+info:
+  name: Keycloak Version Detection
+  author: H1/rfs85
+  severity: info
+  description: Detects Keycloak version and exposes build information
+  reference:
+    - https://www.keycloak.org/
+  tags: keycloak,version,detection,info
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/js/keycloak.js"
+      - "{{BaseURL}}/js/keycloak.js"
+      - "{{BaseURL}}/auth/welcome/"
+      - "{{BaseURL}}/welcome/"
+      - "{{BaseURL}}/auth/admin/"
+      - "{{BaseURL}}/admin/"
+      - "{{BaseURL}}/auth/resources/version"
+      - "{{BaseURL}}/resources/version"
+
+    matchers-condition: and
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "keycloak"
+          - "Keycloak"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: regex
+        name: keycloak_version
+        part: body
+        regex:
+          - "Keycloak ([0-9]+\.[0-9]+\.[0-9]+)"
+          - "version.*?([0-9]+\.[0-9]+\.[0-9]+)"
+          - "\"version\":\"([0-9]+\.[0-9]+\.[0-9]+)\""
+
+      - type: regex
+        name: build_info
+        part: body
+        regex:
+          - "build.*?([0-9a-f]{7,40})"
+          - "commit.*?([0-9a-f]{7,40})"

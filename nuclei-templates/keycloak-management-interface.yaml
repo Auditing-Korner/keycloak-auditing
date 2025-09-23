@@ -1,0 +1,125 @@
+# Keycloak Management Interface Detection
+# Detects JBoss/WildFly management interfaces used by Keycloak
+
+id: keycloak-management-interface
+
+info:
+  name: Keycloak Management Interface Detection
+  author: H1/rfs85
+  severity: medium
+  description: Detects exposed JBoss/WildFly management interfaces used by Keycloak
+  reference:
+    - https://docs.jboss.org/jbossas/6/Admin_Console_Guide/en-US/html/Administration_Console_User_Guide-Accessing_the_Administration_Console.html
+  tags: keycloak,management,jboss,wildfly,exposure
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}:9990/"
+      - "{{BaseURL}}:9990/console/"
+      - "{{BaseURL}}:9993/"
+      - "{{BaseURL}}:9993/console/"
+      - "{{BaseURL}}/console/"
+      - "{{BaseURL}}/management/"
+      - "{{BaseURL}}:10990/"
+      - "{{BaseURL}}:4447/"
+      - "{{BaseURL}}:4448/"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "JBoss"
+          - "WildFly"
+          - "Management Console"
+          - "HAL Management Console"
+          - "Administration Console"
+        condition: or
+
+      - type: word
+        part: header
+        words:
+          - "Server: JBoss"
+          - "Server: WildFly"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+          - 401
+          - 403
+
+    extractors:
+      - type: regex
+        name: server_info
+        part: header
+        regex:
+          - "Server: ([^\\r\\n]+)"
+
+      - type: regex
+        name: management_version
+        part: body
+        regex:
+          - "WildFly ([0-9.]+)"
+          - "JBoss ([0-9.]+)"
+
+  - method: GET
+    path:
+      - "{{BaseURL}}:9990/management"
+      - "{{BaseURL}}:9993/management"
+      - "{{BaseURL}}/management"
+
+    headers:
+      Content-Type: "application/dmr-encoded"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "outcome"
+          - "result"
+        condition: and
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: regex
+        name: management_response
+        part: body
+        regex:
+          - "\"outcome\"\\s*=>\\s*\"([^\"]+)\""
+          - "\"server-state\"\\s*=>\\s*\"([^\"]+)\""
+
+  - method: POST
+    path:
+      - "{{BaseURL}}:9990/management"
+      - "{{BaseURL}}:9993/management"
+
+    headers:
+      Content-Type: "application/json"
+
+    body: |
+      {"operation":"read-resource","address":[]}
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "outcome"
+          - "success"
+        condition: and
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: json
+        name: server_info
+        part: body
+        json:
+          - ".result.server-state"
+          - ".result.product-name"
+          - ".result.product-version"

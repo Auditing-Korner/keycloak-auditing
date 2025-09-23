@@ -1,0 +1,200 @@
+# Keycloak IAM Security Assessment Template
+# Comprehensive security testing for Keycloak Identity and Access Management
+# Includes authentication bypass, privilege escalation, and configuration auditing
+# HackerOne User: H1/rfs85
+
+# Global configuration optimized for Keycloak assessment
+enable_http_crawl: true
+threads: 35
+timeout: 20
+rate_limit: 60
+retries: 3
+custom_headers: [
+  'User-Agent: Mozilla/5.0 (compatible; KeycloakSecAssess/2.2.0; H1/rfs85)',
+  'Accept: application/json, text/html, application/xhtml+xml, */*',
+  'Content-Type: application/json',
+  'X-Requested-With: XMLHttpRequest'
+]
+
+subdomain_discovery:
+  uses_tools: ['subfinder', 'ctfr', 'chaos', 'tlsx']
+  enable_http_crawl: true
+  threads: 25
+  timeout: 12
+  use_subfinder_config: true
+  # Focus on IAM and auth-related subdomains
+  amass_wordlist: 'keycloak-subdomains'
+
+port_scan:
+  enable_http_crawl: true
+  timeout: 15
+  # Keycloak and IAM-specific ports
+  ports: [
+    # Standard web ports
+    '80', '443', '8080', '8443', '9000', '9443',
+    # Keycloak default ports
+    '8180', '8543', '9990', '9993',
+    # Common alternative ports
+    '3000', '4000', '5000', '7000', '8000', '8090', '8181', '8888',
+    # LDAP integration
+    '389', '636', '10389',
+    # Database connections
+    '3306', '5432', '1433', '1521', '27017',
+    # Management interfaces
+    '9990', '9993', '10990', '4447', '4448',
+    # Clustering ports
+    '7600', '57600', '55200', '54200',
+    # JGroups communication
+    '7800', '57800'
+  ]
+  rate_limit: 100
+  threads: 30
+  passive: false
+  enable_nmap: true
+  nmap_cmd: 'nmap -sV -sC --script http-enum,http-headers,ssl-enum-ciphers'
+  nmap_script: 'default,http-*,ssl-*,auth-*'
+
+vulnerability_scan:
+  run_nuclei: true
+  concurrency: 50
+  rate_limit: 80
+  retries: 2
+  timeout: 30
+  fetch_gpt_report: true
+  severities: ['info', 'low', 'medium', 'high', 'critical']
+  templates: [
+    'technologies',
+    'exposures',
+    'misconfiguration',
+    'vulnerabilities',
+    'default-logins',
+    'takeovers',
+    'workflows',
+    'file'
+  ]
+  # Custom nuclei templates for Keycloak
+  custom_nuclei_template: [
+    'keycloak-version-detection',
+    'keycloak-admin-console',
+    'keycloak-realm-enumeration',
+    'keycloak-user-enumeration',
+    'keycloak-client-secrets',
+    'keycloak-configuration-exposure',
+    'keycloak-authentication-bypass',
+    'keycloak-privilege-escalation',
+    'keycloak-jwt-vulnerabilities',
+    'keycloak-oidc-misconfig',
+    'keycloak-saml-vulnerabilities',
+    'keycloak-ldap-injection',
+    'keycloak-database-exposure',
+    'keycloak-management-interface'
+  ]
+  use_conf: true
+
+dir_file_fuzz:
+  auto_calibration: true
+  enable_http_crawl: true
+  rate_limit: 60
+  timeout: 20
+  threads: 25
+  wordlist_name: 'keycloak-directories'
+  # Keycloak-specific file extensions
+  extensions: [
+    # Web files
+    'html', 'htm', 'js', 'css', 'jsp', 'jsf',
+    # Configuration files
+    'xml', 'json', 'yaml', 'yml', 'properties', 'conf', 'config',
+    # Java-specific
+    'jar', 'war', 'ear', 'class',
+    # Keycloak specific
+    'realm', 'keytab', 'p12', 'jks', 'keystore',
+    # Log files
+    'log', 'out', 'err',
+    # Backup files
+    'bak', 'backup', 'old', 'orig', 'tmp',
+    # Security files
+    'pem', 'crt', 'key', 'cer', 'der'
+  ]
+
+fetch_url:
+  gau: true
+  subjs: true
+  waybackurls: true
+  gospider: true
+  threads: 20
+
+http_crawl:
+  threads: 25
+  follow_redirect: true
+
+screenshot:
+  enable_http_crawl: true
+  timeout: 25
+  threads: 30
+
+osint:
+  discover: ['emails', 'metainfo', 'employees', 'leaked_passwords']
+  dorks: [
+    'login_pages',
+    'admin_panels',
+    'dashboard_pages',
+    'config_files',
+    'database_files',
+    'log_files',
+    'backup_files',
+    # Keycloak-specific OSINT
+    'keycloak_admin',
+    'keycloak_realm',
+    'keycloak_config',
+    'iam_configuration',
+    'identity_provider',
+    'oauth_endpoints',
+    'oidc_discovery',
+    'saml_metadata',
+    'jwt_secrets',
+    'authentication_flows',
+    'user_federation',
+    'ldap_configuration'
+  ]
+
+waf_detection: {}
+
+# Custom Keycloak-specific assessment tasks
+custom_assessment:
+  # Realm enumeration and analysis
+  realm_discovery:
+    enabled: true
+    endpoints: [
+      '/auth/realms',
+      '/realms',
+      '/auth/realms/master',
+      '/auth/realms/.well-known/openid_configuration'
+    ]
+    
+  # OIDC endpoint discovery
+  oidc_discovery:
+    enabled: true
+    paths: [
+      '/.well-known/openid_configuration',
+      '/.well-known/openid-configuration',
+      '/auth/realms/{realm}/.well-known/openid_configuration',
+      '/realms/{realm}/.well-known/openid_configuration'
+    ]
+    
+  # Admin console accessibility
+  admin_console_check:
+    enabled: true
+    paths: [
+      '/auth/admin',
+      '/auth/admin/master/console',
+      '/admin',
+      '/admin/master/console',
+      '/console'
+    ]
+    
+  # JWT token analysis
+  jwt_security:
+    enabled: true
+    check_algorithms: ['none', 'HS256', 'RS256']
+    validate_signatures: true
+    check_claims: ['iss', 'aud', 'exp', 'iat', 'sub']

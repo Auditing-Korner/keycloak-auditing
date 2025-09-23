@@ -1,0 +1,72 @@
+# Keycloak Realm Enumeration
+# Enumerates available Keycloak realms and their configurations
+
+id: keycloak-realm-enumeration
+
+info:
+  name: Keycloak Realm Enumeration
+  author: H1/rfs85
+  severity: low
+  description: Enumerates Keycloak realms and exposes configuration information
+  reference:
+    - https://www.keycloak.org/docs/latest/server_admin/index.html#_realms
+  tags: keycloak,realm,enumeration,info-disclosure
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/realms"
+      - "{{BaseURL}}/realms"
+      - "{{BaseURL}}/auth/admin/realms"
+      - "{{BaseURL}}/admin/realms"
+      - "{{BaseURL}}/auth/realms/master/.well-known/openid_configuration"
+      - "{{BaseURL}}/realms/master/.well-known/openid_configuration"
+      - "{{BaseURL}}/auth/realms/master"
+      - "{{BaseURL}}/realms/master"
+
+    matchers-condition: and
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "realm"
+          - "issuer"
+          - "authorization_endpoint"
+          - "token_endpoint"
+        condition: or
+
+      - type: word
+        part: header
+        words:
+          - "application/json"
+          - "text/html"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: json
+        name: realm_names
+        part: body
+        json:
+          - ".realm"
+          - ".issuer"
+          - ".realms[].realm"
+
+      - type: json
+        name: endpoints
+        part: body
+        json:
+          - ".authorization_endpoint"
+          - ".token_endpoint"
+          - ".userinfo_endpoint"
+          - ".jwks_uri"
+
+      - type: regex
+        name: realm_list
+        part: body
+        regex:
+          - "\"realm\"\\s*:\\s*\"([^\"]+)\""
+          - "realms/([^/\"\\s]+)"

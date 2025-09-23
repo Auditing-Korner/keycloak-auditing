@@ -1,0 +1,119 @@
+# Keycloak JWT Vulnerabilities
+# Tests for JWT-related security issues in Keycloak
+
+id: keycloak-jwt-vulnerabilities
+
+info:
+  name: Keycloak JWT Security Issues
+  author: H1/rfs85
+  severity: high
+  description: Tests for JWT vulnerabilities including algorithm confusion and weak secrets
+  reference:
+    - https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/
+    - https://www.keycloak.org/docs/latest/securing_apps/index.html#_java_adapter_config
+  tags: keycloak,jwt,vulnerability,authentication
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/realms/{{realm}}/protocol/openid-connect/certs"
+      - "{{BaseURL}}/realms/{{realm}}/protocol/openid-connect/certs"
+      - "{{BaseURL}}/auth/realms/{{realm}}/.well-known/openid_configuration"
+      - "{{BaseURL}}/realms/{{realm}}/.well-known/openid_configuration"
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+        - "internal"
+        - "external"
+        - "default"
+        - "demo"
+        - "test"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "keys"
+          - "kty"
+          - "jwks_uri"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: json
+        name: jwt_algorithms
+        part: body
+        json:
+          - ".keys[].alg"
+          - ".id_token_signing_alg_values_supported"
+          - ".token_endpoint_auth_signing_alg_values_supported"
+
+      - type: json
+        name: jwks_keys
+        part: body
+        json:
+          - ".keys[].kid"
+          - ".keys[].use"
+          - ".keys[].kty"
+
+      - type: regex
+        name: weak_secrets
+        part: body
+        regex:
+          - "\"n\":\\s*\"([A-Za-z0-9+/=]{1,50})\""  # Short RSA modulus
+          - "\"k\":\\s*\"([A-Za-z0-9+/=]{1,20})\""  # Short symmetric key
+
+  - method: POST
+    path:
+      - "{{BaseURL}}/auth/realms/{{realm}}/protocol/openid-connect/token"
+      - "{{BaseURL}}/realms/{{realm}}/protocol/openid-connect/token"
+
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+
+    body: |
+      grant_type=client_credentials&client_id={{client_id}}&client_secret={{client_secret}}
+
+    payloads:
+      realm:
+        - "master"
+        - "admin"
+      client_id:
+        - "admin-cli"
+        - "account"
+        - "security-admin-console"
+        - "broker"
+      client_secret:
+        - ""
+        - "secret"
+        - "admin"
+        - "password"
+
+    attack: pitchfork
+
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "access_token"
+        condition: and
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: json
+        name: token_info
+        part: body
+        json:
+          - ".access_token"
+          - ".token_type"
+          - ".expires_in"
