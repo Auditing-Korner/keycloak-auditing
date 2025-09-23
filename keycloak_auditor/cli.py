@@ -35,7 +35,40 @@ def _print_findings_table(title: str, findings: list[dict]):
 	console.print(table)
 
 
-@click.group()
+def _run_full_pipeline(config: AuditorConfig, workflow: bool) -> str:
+	# Enumerate
+	with console.status("Enumerating..."):
+		enumr = KeycloakEnumerator(config)
+		enum_res = enumr.run()
+	(Path(config.output_dir) / "enumeration.json").write_text(json.dumps(enum_res, indent=2))
+	# Audit
+	with console.status("Auditing..."):
+		auditor = AuditRunner(config)
+		audit_res = auditor.run()
+	(Path(config.output_dir) / "audit.json").write_text(json.dumps(audit_res, indent=2))
+	# Scan
+	with console.status("Scanning (Nuclei)..."):
+		scanner = NucleiScanner(config)
+		scan_res = scanner.run(use_workflow=workflow)
+	(Path(config.output_dir) / "nuclei.json").write_text(json.dumps(scan_res, indent=2))
+	# Exploit
+	with console.status("Running safe exploitation..."):
+		exp = ExploitationRunner(config)
+		exploit_res = exp.run()
+	(Path(config.output_dir) / "exploitation.json").write_text(json.dumps(exploit_res, indent=2))
+	# Report
+	with console.status("Generating report..."):
+		reporter = ReportGenerator(config)
+		report_path = reporter.generate()
+	# Summaries
+	_print_findings_table("Audit Findings", audit_res)
+	_print_findings_table("Nuclei Findings", scan_res)
+	_print_findings_table("Exploitation Attempts", exploit_res)
+	console.print(Panel.fit(f"[bold]Report ready:[/bold] {report_path}", border_style="green"))
+	return report_path
+
+
+@click.group(invoke_without_command=True)
 @click.option("--base-url", required=True, help="Keycloak base URL, e.g., https://kc.example.com")
 @click.option("--realm", default="master", show_default=True, help="Realm to target")
 @click.option("--client-id", default=None, help="Client ID for authenticated API calls (optional)")
@@ -49,10 +82,18 @@ def _print_findings_table(title: str, findings: list[dict]):
 @click.option("--timeout", type=int, default=15, show_default=True, help="HTTP timeout in seconds")
 @click.option("--retries", type=int, default=2, show_default=True, help="HTTP retry attempts")
 @click.option("--insecure", is_flag=True, help="Disable TLS certificate verification")
+@click.option("--workflow", is_flag=True, help="Use nuclei workflow if available in templates (default for no-command mode)")
+@click.option("--nuclei-ai", is_flag=True, help="Enable nuclei AI (requires supported build and API key)")
+@click.option("--nuclei-ai-prompt", default=None, help="Custom AI prompt to guide nuclei templates")
+@click.option("--nuclei-severity", default=None, help="Filter nuclei by severity (e.g. critical,high,medium)")
+@click.option("--nuclei-tags", default=None, help="Filter nuclei by tags (comma-separated)")
 @click.option("--out", default="audit-output", show_default=True, help="Output directory for artifacts")
 @click.pass_context
-def main(ctx, base_url, realm, client_id, client_secret, token, nuclei_path, nuclei_templates, wordlists_dir, use_wordlists, rate_limit, timeout, retries, insecure, out):
-	"""Keycloak Auditor CLI."""
+def main(ctx, base_url, realm, client_id, client_secret, token, nuclei_path, nuclei_templates, wordlists_dir, use_wordlists, rate_limit, timeout, retries, insecure, workflow, nuclei_ai, nuclei_ai_prompt, nuclei_severity, nuclei_tags, out):
+	"""Keycloak Auditor CLI.
+
+	If no COMMAND is provided, runs the full pipeline by default.
+	"""
 	config = AuditorConfig(
 		base_url=base_url.rstrip("/"),
 		realm=realm,
@@ -67,12 +108,19 @@ def main(ctx, base_url, realm, client_id, client_secret, token, nuclei_path, nuc
 		http_timeout_seconds=timeout,
 		retries=retries,
 		verify_ssl=not insecure,
+		nuclei_ai=nuclei_ai,
+		nuclei_ai_prompt=nuclei_ai_prompt,
+		nuclei_severity=nuclei_severity,
+		nuclei_tags=nuclei_tags,
 		output_dir=out,
 	)
 	Path(out).mkdir(parents=True, exist_ok=True)
 	ctx.obj = {
 		"config": config,
 	}
+	if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
+		console.rule("[bold green]Full Pipeline (default)")
+		_run_full_pipeline(config, workflow)
 
 
 @main.command()
@@ -152,35 +200,7 @@ def full(ctx, workflow):
 	"""Run full pipeline: enumerate -> audit -> scan -> exploit -> report."""
 	config: AuditorConfig = ctx.obj["config"]
 	console.rule("[bold green]Full Pipeline")
-	# Enumerate
-	with console.status("Enumerating..."):
-		enumr = KeycloakEnumerator(config)
-		enum_res = enumr.run()
-	(Path(config.output_dir) / "enumeration.json").write_text(json.dumps(enum_res, indent=2))
-	# Audit
-	with console.status("Auditing..."):
-		auditor = AuditRunner(config)
-		audit_res = auditor.run()
-	(Path(config.output_dir) / "audit.json").write_text(json.dumps(audit_res, indent=2))
-	# Scan
-	with console.status("Scanning (Nuclei)..."):
-		scanner = NucleiScanner(config)
-		scan_res = scanner.run(use_workflow=workflow)
-	(Path(config.output_dir) / "nuclei.json").write_text(json.dumps(scan_res, indent=2))
-	# Exploit
-	with console.status("Running safe exploitation..."):
-		exp = ExploitationRunner(config)
-		exploit_res = exp.run()
-	(Path(config.output_dir) / "exploitation.json").write_text(json.dumps(exploit_res, indent=2))
-	# Report
-	with console.status("Generating report..."):
-		reporter = ReportGenerator(config)
-		report_path = reporter.generate()
-	console.print(Panel.fit(f"[bold]Report ready:[/bold] {report_path}", border_style="green"))
-	# Summaries
-	_print_findings_table("Audit Findings", audit_res)
-	_print_findings_table("Nuclei Findings", scan_res)
-	_print_findings_table("Exploitation Attempts", exploit_res)
+	_run_full_pipeline(config, workflow)
 
 
 @main.command()

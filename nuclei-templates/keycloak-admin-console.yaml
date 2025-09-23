@@ -4,55 +4,19 @@
 id: keycloak-admin-console
 
 info:
-  name: Keycloak Admin Console Exposed
-  author: H1/rfs85
-  severity: medium
-  description: Detects publicly accessible Keycloak admin console
-  reference:
-    - https://www.keycloak.org/docs/latest/server_admin/
-  tags: keycloak,admin,console,exposure
-
-http:
+  name: Keycloak Admin Console Exposure
+  author: keycloak-auditor
+  severity: info
+  tags: keycloak,exposure
+requests:
   - method: GET
     path:
-      - "{{BaseURL}}/auth/admin/"
-      - "{{BaseURL}}/admin/"
-      - "{{BaseURL}}/auth/admin/master/console/"
-      - "{{BaseURL}}/admin/master/console/"
-      - "{{BaseURL}}/console/"
-      - "{{BaseURL}}/management/"
-      - "{{BaseURL}}/auth/admin/master/console/index.html"
-
-    matchers-condition: and
+      - "{{BaseURL}}/admin"
     matchers:
-      - type: word
-        part: body
-        words:
-          - "Keycloak Administration Console"
-          - "keycloak-admin-ui"
-          - "admin-console"
-          - "Welcome to Keycloak"
-          - "Administration Console"
-        condition: or
-
       - type: status
         status:
           - 200
-          - 302
-          - 401
-          - 403
-
-    extractors:
-      - type: regex
-        name: admin_realm
-        part: body
-        regex:
-          - "realm.*?[\"'](.*?)[\"']"
-          - "realmName.*?[\"'](.*?)[\"']"
-
       - type: word
-        name: response_headers
-        part: header
         words:
-          - "X-Frame-Options"
-          - "Content-Security-Policy"
+          - "Keycloak Admin"
+          - "Keycloak"

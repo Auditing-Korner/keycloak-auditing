@@ -5,12 +5,21 @@ id: keycloak-version-detection
 
 info:
   name: Keycloak Version Detection
-  author: H1/rfs85
+  author: keycloak-auditor
   severity: info
-  description: Detects Keycloak version and exposes build information
-  reference:
-    - https://www.keycloak.org/
-  tags: keycloak,version,detection,info
+  tags: keycloak,discovery
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/realms/master/.well-known/openid-configuration"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        words:
+          - "issuer"
 
 http:
   - method: GET

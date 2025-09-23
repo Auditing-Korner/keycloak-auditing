@@ -32,7 +32,7 @@ Keycloak Auditor helps security professionals assess Keycloak deployments. It co
 ## Key Features
 - Enumeration: OIDC discovery, realms, clients/roles/groups/IDPs/flows counts (with token)
 - Configuration Audit: HTTPS, security headers, admin console exposure, and more
-- Vulnerability Scanning: Runs local Nuclei templates/workflows against targets
+- Vulnerability Scanning: Runs local Nuclei templates/workflows against targets (with optional AI guidance)
 - Safe Exploitation: Non-destructive PoCs to validate suspicious findings
 - Reporting: Consolidated Markdown and JSON reports with severity breakdowns
 
@@ -52,6 +52,7 @@ Keycloak Auditor helps security professionals assess Keycloak deployments. It co
 ## Prerequisites
 - Python 3.10+
 - Optional: Nuclei binary installed (`nuclei` on PATH) or provide via `--nuclei-path`
+- Optional (AI features): A Nuclei build that supports `-ai` and a valid API key configured per Nuclei docs
 - Network access to the target Keycloak base URL
 - Authorization to test the target
 
@@ -83,37 +84,14 @@ keycloak-auditor \
   full --workflow
 ```
 
-Run individual stages:
-```bash
-keycloak-auditor --base-url https://kc.example.com --realm master enumerate
-keycloak-auditor --base-url https://kc.example.com --realm master audit
-keycloak-auditor --base-url https://kc.example.com --realm master --nuclei-templates nuclei-templates scan --workflow
-keycloak-auditor --base-url https://kc.example.com --realm master exploit
-keycloak-auditor --base-url https://kc.example.com --realm master report
-```
-
-Run test suite:
-```bash
-keycloak-auditor selftest --pytest-args "-q"
-```
-
-Authenticated enumeration (client credentials):
+Run Nuclei with AI assistance (requires supported nuclei build):
 ```bash
 keycloak-auditor \
   --base-url https://kc.example.com \
   --realm master \
-  --client-id admin-cli \
-  --client-secret $SECRET \
-  enumerate
-```
-
-Authenticated Nuclei scanning (token header is added automatically when `--token` is set):
-```bash
-keycloak-auditor \
-  --base-url https://kc.example.com \
-  --realm master \
-  --token $ACCESS_TOKEN \
   --nuclei-templates nuclei-templates \
+  --nuclei-ai \
+  --nuclei-ai-prompt "Focus on Keycloak misconfigurations and weak redirect URIs" \
   scan --workflow
 ```
 
@@ -123,6 +101,8 @@ Performance and safety flags:
 - `--timeout`: HTTP/Nuclei timeout seconds (default 15)
 - `--retries`: HTTP retries (default 2)
 - `--insecure`: skip TLS verification
+- `--nuclei-ai`: enable Nuclei AI (experimental)
+- `--nuclei-ai-prompt`: custom prompt to guide AI
 
 See [CLI Reference](docs/reference.md) for all options.
 
@@ -165,6 +145,7 @@ The scanner composes target URLs into `audit-output/targets.txt` and uses `-l` f
 - Timeout/connection errors: increase `--timeout`, reduce `--rate-limit`, or check network/SSL; use `--insecure` for lab/self-signed.
 - Limited enumeration: provide `--token` or `--client-id/--client-secret` for admin API access.
 - Empty findings: ensure `--nuclei-templates` points to a directory with Keycloak templates/workflows.
+- AI flags ignored: verify your Nuclei build supports `-ai`, and that AI credentials/env are configured.
 
 ## Roadmap
 - Deeper configuration checks (password/MFA/brute-force policies, cookies/CSP/HSTS)

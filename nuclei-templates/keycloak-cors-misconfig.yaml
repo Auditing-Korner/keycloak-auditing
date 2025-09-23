@@ -1,0 +1,21 @@
+id: keycloak-cors-misconfig
+info:
+  name: Keycloak Permissive CORS
+  author: keycloak-auditor
+  severity: medium
+  tags: keycloak,cors,misconfig
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/realms/{{Hostname}}/.well-known/openid-configuration"
+    headers:
+      Origin: "https://evil.example"
+    matchers-condition: and
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "access-control-allow-origin: *"
+      - type: status
+        status:
+          - 200

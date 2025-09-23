@@ -61,6 +61,16 @@ class NucleiScanner:
 		# Auth header if token provided
 		if self.config.token:
 			cmd.extend(["-H", f"Authorization: Bearer {self.config.token}"])
+		# AI flags (requires supported nuclei build and API key in env)
+		if getattr(self.config, "nuclei_ai", False):
+			cmd.append("-ai")
+			if getattr(self.config, "nuclei_ai_prompt", None):
+				cmd.extend(["-ai-prompt", self.config.nuclei_ai_prompt])
+		# Filters
+		if getattr(self.config, "nuclei_severity", None):
+			cmd.extend(["-severity", self.config.nuclei_severity])
+		if getattr(self.config, "nuclei_tags", None):
+			cmd.extend(["-tags", self.config.nuclei_tags])
 
 		# targets
 		targets_list: Path | None = None

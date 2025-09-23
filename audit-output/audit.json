@@ -1,0 +1,14 @@
+[
+  {
+    "id": "missing_csp",
+    "title": "Missing Content-Security-Policy header",
+    "severity": "low",
+    "remediation": "Configure reverse proxy or Keycloak to set a strict CSP."
+  },
+  {
+    "id": "admin_console_exposed",
+    "title": "Admin console accessible",
+    "severity": "info",
+    "remediation": "Restrict access to admin console via network/policy."
+  }
+]

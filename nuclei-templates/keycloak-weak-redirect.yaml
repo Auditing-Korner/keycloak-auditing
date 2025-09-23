@@ -1,0 +1,16 @@
+id: keycloak-weak-redirect
+info:
+  name: Keycloak Weak Redirect URI Handling
+  author: keycloak-auditor
+  severity: medium
+  tags: keycloak,redirect,oauth
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/realms/master/protocol/openid-connect/auth?client_id=account&response_type=code&scope=openid&redirect_uri=https://example.com"
+    max-redirects: 0
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "location: https://example.com"

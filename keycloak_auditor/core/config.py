@@ -19,3 +19,9 @@ class AuditorConfig(BaseModel):
 	retries: int = 2
 	backoff_seconds: float = 0.5
 	verify_ssl: bool = True
+	# Nuclei AI (optional, requires supported nuclei build and API key)
+	nuclei_ai: bool = False
+	nuclei_ai_prompt: Optional[str] = None
+	# Nuclei filters
+	nuclei_severity: Optional[str] = None  # e.g. "critical,high,medium"
+	nuclei_tags: Optional[str] = None      # e.g. "keycloak,auth"

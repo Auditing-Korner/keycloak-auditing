@@ -1,0 +1,20 @@
+id: keycloak-cookie-flags
+info:
+  name: Keycloak Weak Cookie Flags
+  author: keycloak-auditor
+  severity: low
+  tags: keycloak,cookie,misconfig
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+    matchers-condition: or
+    matchers:
+      - type: regex
+        part: header
+        regex:
+          - "set-cookie: .*keycloak.*;.*(?!(?i)httponly)"
+      - type: regex
+        part: header
+        regex:
+          - "set-cookie: .*keycloak.*;.*(?!(?i)secure)"
