@@ -3,12 +3,14 @@
 
 	- Base URL: https://keycloak.cfappsecurity.com
 	- Realm: master
+	- Version: unknown
 
 	## Summary
 	- Enumeration items: 4
 	- Audit findings: 2
 	- Nuclei findings: 1
 	- Exploit attempts: 0
+	- CVEs matched: 0
 
 	### Severity Breakdown (All Sources)
 	| Severity | Count |
@@ -24,6 +26,11 @@
 	- [Info] Admin console accessible
 	
 	- [Info] Nuclei binary not found
+	
+
+	## CVE Mapping
+	
+	No CVEs matched the detected version.
 	
 
 	## Enumeration

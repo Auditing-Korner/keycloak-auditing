@@ -67,6 +67,19 @@ class KeycloakEnumerator:
 		result["oidc_well_known"] = self._well_known()
 
 		token = self._client_credentials_token()
+		# version via serverinfo
+		if token:
+			try:
+				resp = self.http.request("GET", f"{self.config.base_url}/admin/serverinfo", headers=self._headers(token))
+				if resp.ok:
+					info = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else None
+					if isinstance(info, dict):
+						vers = info.get("systemInfo", {}).get("version") or info.get("version")
+						if vers:
+							result["server_version"] = vers
+			except Exception:
+				pass
+
 		realms: List[str] = []
 		if token:
 			realms_data = self._admin_list(token, "/admin/realms")
@@ -96,7 +109,6 @@ class KeycloakEnumerator:
 			})
 		result["realm_info"] = realm_info
 
-		# Public endpoints exposure checks
 		try:
 			admin_resp = self.http.request("GET", f"{self.config.base_url}/admin", allow_redirects=True)
 			result["admin_console_status"] = admin_resp.status_code

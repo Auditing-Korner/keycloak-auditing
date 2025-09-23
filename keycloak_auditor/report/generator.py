@@ -6,6 +6,8 @@ from typing import Any, Dict, List
 from jinja2 import Template
 
 from ..core.config import AuditorConfig
+from ..cve.database import get_cves_for_version
+from .html_generator import HTMLReportGenerator
 
 
 REPORT_TEMPLATE = Template(
@@ -14,12 +16,14 @@ REPORT_TEMPLATE = Template(
 
 	- Base URL: {{ base_url }}
 	- Realm: {{ realm }}
+	- Version: {{ version or 'unknown' }}
 
 	## Summary
 	- Enumeration items: {{ enumeration|length if enumeration else 0 }}
 	- Audit findings: {{ audit|length if audit else 0 }}
 	- Nuclei findings: {{ nuclei|length if nuclei else 0 }}
 	- Exploit attempts: {{ exploitation|length if exploitation else 0 }}
+	- CVEs matched: {{ cves|length if cves else 0 }}
 
 	### Severity Breakdown (All Sources)
 	| Severity | Count |
@@ -31,6 +35,16 @@ REPORT_TEMPLATE = Template(
 	{% for f in top_findings %}
 	- [{{ f.severity|capitalize }}] {{ f.title or (f.info.name if f.info and f.info.name) or f.id }}
 	{% endfor %}
+
+	## CVE Mapping
+	{% if cves %}
+	| CVE | Severity | CVSS | Description |
+	|---|---|---:|---|
+	{% for c in cves %}| {{ c.cve_id }} | {{ c.severity }} | {{ c.cvss }} | {{ c.description }} |
+	{% endfor %}
+	{% else %}
+	No CVEs matched the detected version.
+	{% endif %}
 
 	## Enumeration
 	```
@@ -76,6 +90,14 @@ class ReportGenerator:
 				return None
 		return None
 
+	def _extract_version(self, enumeration: Any) -> str | None:
+		try:
+			if isinstance(enumeration, dict):
+				return enumeration.get("server_version")
+			return None
+		except Exception:
+			return None
+
 	def generate(self) -> str:
 		out_dir = Path(self.config.output_dir)
 		enumeration = self._read_json(out_dir / "enumeration.json")
@@ -97,26 +119,38 @@ class ReportGenerator:
 			key=lambda x: sev_order.index(x["severity"]) if x["severity"] in sev_order else len(sev_order),
 		)[:10]
 
+		kc_version = self._extract_version(enumeration)
+		cves = get_cves_for_version(kc_version) if kc_version else []
+
 		markdown = REPORT_TEMPLATE.render(
 			base_url=self.config.base_url,
 			realm=self.config.realm,
+			version=kc_version,
 			enumeration=enumeration,
 			audit=audit,
 			nuclei=nuclei,
 			exploitation=exploitation,
 			severity_breakdown=severity_breakdown,
 			top_findings=top_findings,
+			cves=cves,
 		)
 		(out_dir / "report.md").write_text(markdown)
 		summary = {
 			"base_url": self.config.base_url,
 			"realm": self.config.realm,
+			"version": kc_version,
 			"enumeration": enumeration,
 			"audit": audit,
 			"nuclei": nuclei,
 			"exploitation": exploitation,
 			"severity_breakdown": severity_breakdown,
 			"top_findings": top_findings,
+			"cves": [c.__dict__ for c in cves],
 		}
 		(out_dir / "report.json").write_text(json.dumps(summary, indent=2))
+		
+		# Generate HTML report
+		html_gen = HTMLReportGenerator(self.config)
+		html_path = html_gen.generate()
+		
 		return str(out_dir / "report.md")

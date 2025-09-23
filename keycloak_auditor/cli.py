@@ -14,6 +14,8 @@ from .audit.checks import AuditRunner
 from .scanner.nuclei import NucleiScanner
 from .exploitation.poc import ExploitationRunner
 from .report.generator import ReportGenerator
+from .report.html_generator import HTMLReportGenerator
+from .export.sarif import SARIFExporter
 
 console = Console()
 
@@ -183,14 +185,25 @@ def exploit(ctx):
 
 
 @main.command(name="report")
+@click.option("--format", type=click.Choice(["markdown", "html", "sarif", "all"]), default="all", help="Report format")
 @click.pass_context
-def report_cmd(ctx):
-	"""Generate final markdown and JSON reports."""
+def report_cmd(ctx, format):
+	"""Generate final reports in various formats."""
 	config: AuditorConfig = ctx.obj["config"]
-	with console.status("Generating report..."):
+	with console.status("Generating reports..."):
 		reporter = ReportGenerator(config)
 		output = reporter.generate()
-	console.print(f"[bold]Report generated at[/bold] {output}")
+		console.print(f"[bold]Markdown report:[/bold] {output}")
+		
+		if format in ["html", "all"]:
+			html_gen = HTMLReportGenerator(config)
+			html_path = html_gen.generate()
+			console.print(f"[bold]HTML report:[/bold] {html_path}")
+		
+		if format in ["sarif", "all"]:
+			sarif_exporter = SARIFExporter(config)
+			sarif_path = sarif_exporter.export()
+			console.print(f"[bold]SARIF report:[/bold] {sarif_path}")
 
 
 @main.command()

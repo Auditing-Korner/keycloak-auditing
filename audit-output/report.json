@@ -1,6 +1,7 @@
 {
   "base_url": "https://keycloak.cfappsecurity.com",
   "realm": "master",
+  "version": null,
   "enumeration": {
     "oidc_well_known": {
       "https://keycloak.cfappsecurity.com/realms/master/.well-known/openid-configuration": {
@@ -440,5 +441,6 @@
       },
       "id": "nuclei_missing"
     }
-  ]
+  ],
+  "cves": []
 }
