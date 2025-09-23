@@ -3,7 +3,7 @@
 A modular Python framework to audit the security of Keycloak. It integrates Nuclei workflows/templates with automated enumeration, audit checks, vulnerability scanning, safe exploitation, and final report generation.
 
 ## Features
-- Enumeration: OIDC discovery, realms, clients/roles counts (with token)
+- Enumeration: OIDC discovery, realms, clients/roles/groups/IDPs/flows counts (with token)
 - Audit: Basic security posture checks (HTTPS, headers, admin console exposure)
 - Vulnerability scanning: Runs local Nuclei templates/workflows against the target
 - Safe exploitation: Non-destructive checks to validate potential issues
@@ -11,7 +11,7 @@ A modular Python framework to audit the security of Keycloak. It integrates Nucl
 
 ## Install
 
-- Python 3.9+
+- Python 3.10+
 - Optional: Nuclei binary on PATH (`nuclei`) or specify via `--nuclei-path`
 
 ```bash
@@ -25,50 +25,35 @@ Basic help:
 keycloak-auditor --help
 ```
 
-Run end-to-end (adjust URL/realm):
+Performance and safety flags:
+- `--rate-limit`: HTTP/Nuclei requests per second (default 5)
+- `--timeout`: HTTP/Nuclei timeout seconds (default 15)
+- `--retries`: HTTP retries (default 2)
+- `--insecure`: skip TLS verification
+
+## Wordlists Integration
+- Wordlists live in `wordlists/`:
+  - `keycloak-directories.txt`: common paths (supports `{realm}`)
+  - `keycloak-subdomains.txt`: common subdomain prefixes
+  - `keycloak-admin-api.txt`: admin API endpoints (supports `{realm}`)
+- Enable during scans with `--use-wordlists` (and optionally `--wordlists-dir`):
 ```bash
 keycloak-auditor \
   --base-url https://kc.example.com \
   --realm master \
-  --out audit-output enumerate
-
-keycloak-auditor \
-  --base-url https://kc.example.com \
-  --realm master audit
-
-keycloak-auditor \
-  --base-url https://kc.example.com \
-  --realm master \
-  --nuclei-templates nuclei-templates scan --workflow
-
-keycloak-auditor \
-  --base-url https://kc.example.com \
-  --realm master exploit
-
-keycloak-auditor \
-  --base-url https://kc.example.com \
-  --realm master report
+  --use-wordlists \
+  --wordlists-dir wordlists \
+  --rate-limit 5 \
+  --timeout 20 \
+  --nuclei-templates nuclei-templates \
+  scan --workflow
 ```
-
-Authenticated enumeration (client credentials):
-```bash
-keycloak-auditor \
-  --base-url https://kc.example.com \
-  --realm master \
-  --client-id my-admin-client \
-  --client-secret $SECRET \
-  enumerate
-```
-
-## Nuclei Integration
-- By default, scans all templates in `nuclei-templates/`.
-- If `--workflow` is set and `nuclei-templates/keycloak-security-workflow.yaml` exists, uses it.
-- Outputs JSONL to `audit-output/nuclei.jsonl` and consolidated JSON to `audit-output/nuclei.json`.
+- The scanner composes target URLs into `audit-output/targets.txt` and uses `-l` for Nuclei.
 
 ## Outputs
 - `audit-output/enumeration.json`
 - `audit-output/audit.json`
-- `audit-output/nuclei.json`, `audit-output/nuclei.jsonl`
+- `audit-output/nuclei.json`, `audit-output/nuclei.jsonl`, `audit-output/targets.txt`
 - `audit-output/exploitation.json`
 - `audit-output/report.md`, `audit-output/report.json`
 

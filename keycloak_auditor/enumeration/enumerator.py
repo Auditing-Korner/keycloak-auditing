@@ -1,98 +1,106 @@
 import json
-from typing import Any, Dict
-
-import requests
+from typing import Any, Dict, List
 
 from ..core.config import AuditorConfig
+from ..core.http import ThrottledRequester
 
 
 class KeycloakEnumerator:
 	def __init__(self, config: AuditorConfig):
 		self.config = config
+		self.http = ThrottledRequester(config)
 
-	def _get(self, path: str) -> requests.Response:
-		url = f"{self.config.base_url}{path}"
-		headers = {}
-		if self.config.token:
-			headers["Authorization"] = f"Bearer {self.config.token}"
-		return requests.get(url, headers=headers, timeout=15, verify=True)
+	def _headers(self, token: str | None = None) -> Dict[str, str]:
+		headers: Dict[str, str] = {}
+		if token:
+			headers["Authorization"] = f"Bearer {token}"
+		return headers
 
-	def _post(self, path: str, data: Dict[str, Any]) -> requests.Response:
-		url = f"{self.config.base_url}{path}"
-		headers = {"Content-Type": "application/x-www-form-urlencoded"}
-		return requests.post(url, headers=headers, data=data, timeout=15, verify=True)
+	def _well_known(self) -> Dict[str, Any]:
+		data: Dict[str, Any] = {}
+		for ep in [
+			f"{self.config.base_url}/realms/master/.well-known/openid-configuration",
+			f"{self.config.base_url}/realms/{self.config.realm}/.well-known/openid-configuration",
+			f"{self.config.base_url}/realms/{self.config.realm}/.well-known/uma2-configuration",
+		]:
+			try:
+				resp = self.http.request("GET", ep)
+				if resp.ok:
+					data[ep] = resp.json()
+			except Exception:
+				continue
+		return data
 
-	def _maybe_get_admin_token(self) -> str | None:
+	def _client_credentials_token(self) -> str | None:
 		if self.config.token:
 			return self.config.token
 		if self.config.client_id and self.config.client_secret:
-			# Client credentials against token endpoint
-			realm = self.config.realm
-			resp = self._post(
-				f"/realms/{realm}/protocol/openid-connect/token",
-				{
-					"grant_type": "client_credentials",
-					"client_id": self.config.client_id,
-					"client_secret": self.config.client_secret,
-				},
-			)
+			try:
+				resp = self.http.request(
+					"POST",
+					f"{self.config.base_url}/realms/{self.config.realm}/protocol/openid-connect/token",
+					headers={"Content-Type": "application/x-www-form-urlencoded"},
+					data={
+						"grant_type": "client_credentials",
+						"client_id": self.config.client_id,
+						"client_secret": self.config.client_secret,
+					},
+				)
+				if resp.ok:
+					return resp.json().get("access_token")
+			except Exception:
+				return None
+		return None
+
+	def _admin_list(self, token: str, path: str) -> List[Any] | None:
+		try:
+			resp = self.http.request("GET", f"{self.config.base_url}{path}", headers=self._headers(token))
 			if resp.ok:
-				return resp.json().get("access_token")
+				j = resp.json()
+				return j if isinstance(j, list) else None
+		except Exception:
+			return None
 		return None
 
 	def run(self) -> Dict[str, Any]:
 		result: Dict[str, Any] = {}
+		result["oidc_well_known"] = self._well_known()
 
-		# Version info (Keycloak exposes at /auth by older, and /.well-known? Using health and version endpoint)
-		version_endpoints = [
-			"/realms/master/.well-known/openid-configuration",
-			"/realms/%s/.well-known/openid-configuration" % self.config.realm,
-		]
-		version_data: Dict[str, Any] = {}
-		for ep in version_endpoints:
-			try:
-				resp = self._get(ep)
-				if resp.ok:
-					data = resp.json()
-					issuer = data.get("issuer")
-					version_data[ep] = {"issuer": issuer, "authorization_endpoint": data.get("authorization_endpoint")}
-			except requests.RequestException:
-				continue
-		result["oidc_well_known"] = version_data
-
-		# Realms enumeration: if unauth allowed, usually not; attempt if token available
-		admin_token = self._maybe_get_admin_token()
-		realms = []
-		if admin_token:
-			try:
-				resp = requests.get(
-					f"{self.config.base_url}/admin/realms",
-					headers={"Authorization": f"Bearer {admin_token}"},
-					timeout=15,
-				)
-				if resp.ok:
-					realms = [r.get("realm") for r in resp.json() if isinstance(r, dict)]
-			except requests.RequestException:
-				pass
+		token = self._client_credentials_token()
+		realms: List[str] = []
+		if token:
+			realms_data = self._admin_list(token, "/admin/realms")
+			if realms_data:
+				realms = [r.get("realm") for r in realms_data if isinstance(r, dict)]
 		result["realms"] = realms
 
-		# Clients, roles, users (counts) for target realm if token permits
 		realm = self.config.realm
 		realm_info: Dict[str, Any] = {}
-		if admin_token:
-			base = f"{self.config.base_url}/admin/realms/{realm}"
-			try:
-				clients = requests.get(f"{base}/clients", headers={"Authorization": f"Bearer {admin_token}"}, timeout=20)
-				if clients.ok:
-					realm_info["clients_count"] = len(clients.json())
-				roles = requests.get(f"{base}/roles", headers={"Authorization": f"Bearer {admin_token}"}, timeout=20)
-				if roles.ok:
-					realm_info["roles_count"] = len(roles.json())
-				users = requests.get(f"{base}/users?max=1&first=0", headers={"Authorization": f"Bearer {admin_token}"}, timeout=20)
-				if users.ok:
-					realm_info["users_accessible"] = True
-			except requests.RequestException:
-				pass
+		if token:
+			base = f"/admin/realms/{realm}"
+			clients = self._admin_list(token, f"{base}/clients") or []
+			roles = self._admin_list(token, f"{base}/roles") or []
+			groups = self._admin_list(token, f"{base}/groups") or []
+			idps = self._admin_list(token, f"{base}/identity-provider/instances") or []
+			flows = self._admin_list(token, f"{base}/authentication/flows") or []
+			client_scopes = self._admin_list(token, f"{base}/client-scopes") or []
+			components = self._admin_list(token, f"{base}/components") or []
+			realm_info.update({
+				"clients_count": len(clients),
+				"roles_count": len(roles),
+				"groups_count": len(groups),
+				"idps_count": len(idps),
+				"flows_count": len(flows),
+				"client_scopes_count": len(client_scopes),
+				"components_count": len(components),
+			})
 		result["realm_info"] = realm_info
+
+		# Public endpoints exposure checks
+		try:
+			admin_resp = self.http.request("GET", f"{self.config.base_url}/admin", allow_redirects=True)
+			result["admin_console_status"] = admin_resp.status_code
+		except Exception:
+			result["admin_console_status"] = None
 
 		return result

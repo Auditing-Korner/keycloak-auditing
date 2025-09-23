@@ -1,0 +1,10 @@
+/admin/realms
+/admin/realms/{realm}
+/admin/realms/{realm}/clients
+/admin/realms/{realm}/roles
+/admin/realms/{realm}/groups
+/admin/realms/{realm}/identity-provider/instances
+/admin/realms/{realm}/authentication/flows
+/admin/realms/{realm}/client-scopes
+/admin/realms/{realm}/components
+/admin/serverinfo

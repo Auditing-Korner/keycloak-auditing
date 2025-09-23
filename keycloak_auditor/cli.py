@@ -4,6 +4,7 @@ from pathlib import Path
 import click
 from rich.console import Console
 from rich.table import Table
+from rich.panel import Panel
 
 from .core.config import AuditorConfig
 from .enumeration.enumerator import KeycloakEnumerator
@@ -15,6 +16,23 @@ from .report.generator import ReportGenerator
 console = Console()
 
 
+def _print_findings_table(title: str, findings: list[dict]):
+	sev_order = ["critical", "high", "medium", "low", "info", "unknown"]
+	counts = {s: 0 for s in sev_order}
+	for f in findings or []:
+		sev = (
+			(str(f.get("severity")) or str((f.get("info") or {}).get("severity")) or "unknown").lower()
+		)
+		counts[sev] = counts.get(sev, 0) + 1
+	table = Table(title=title, show_header=True, header_style="bold cyan")
+	table.add_column("Severity")
+	table.add_column("Count", justify="right")
+	for s in sev_order:
+		if counts.get(s, 0) > 0:
+			table.add_row(s.capitalize(), str(counts[s]))
+	console.print(table)
+
+
 @click.group()
 @click.option("--base-url", required=True, help="Keycloak base URL, e.g., https://kc.example.com")
 @click.option("--realm", default="master", show_default=True, help="Realm to target")
@@ -23,9 +41,15 @@ console = Console()
 @click.option("--token", default=None, help="Bearer token if already obtained (optional)")
 @click.option("--nuclei-path", default="nuclei", show_default=True, help="Path to nuclei binary")
 @click.option("--nuclei-templates", default=str(Path("nuclei-templates").resolve()), show_default=True, help="Path to nuclei templates")
+@click.option("--wordlists-dir", default=str(Path("wordlists").resolve()), show_default=True, help="Path to wordlists directory")
+@click.option("--use-wordlists", is_flag=True, help="Use wordlists to build URL targets for scanning")
+@click.option("--rate-limit", type=float, default=5.0, show_default=True, help="Max HTTP requests per second")
+@click.option("--timeout", type=int, default=15, show_default=True, help="HTTP timeout in seconds")
+@click.option("--retries", type=int, default=2, show_default=True, help="HTTP retry attempts")
+@click.option("--insecure", is_flag=True, help="Disable TLS certificate verification")
 @click.option("--out", default="audit-output", show_default=True, help="Output directory for artifacts")
 @click.pass_context
-def main(ctx, base_url, realm, client_id, client_secret, token, nuclei_path, nuclei_templates, out):
+def main(ctx, base_url, realm, client_id, client_secret, token, nuclei_path, nuclei_templates, wordlists_dir, use_wordlists, rate_limit, timeout, retries, insecure, out):
 	"""Keycloak Auditor CLI."""
 	config = AuditorConfig(
 		base_url=base_url.rstrip("/"),
@@ -35,6 +59,12 @@ def main(ctx, base_url, realm, client_id, client_secret, token, nuclei_path, nuc
 		token=token,
 		nuclei_path=nuclei_path,
 		nuclei_templates=nuclei_templates,
+		wordlists_dir=wordlists_dir,
+		use_wordlists=use_wordlists,
+		rate_limit_rps=rate_limit,
+		http_timeout_seconds=timeout,
+		retries=retries,
+		verify_ssl=not insecure,
 		output_dir=out,
 	)
 	Path(out).mkdir(parents=True, exist_ok=True)
@@ -48,9 +78,10 @@ def main(ctx, base_url, realm, client_id, client_secret, token, nuclei_path, nuc
 def enumerate(ctx):
 	"""Enumerate Keycloak instance details."""
 	config: AuditorConfig = ctx.obj["config"]
-	enumr = KeycloakEnumerator(config)
-	results = enumr.run()
-	console.print("[bold]Enumeration Results[/bold]")
+	with console.status("Enumerating Keycloak..."):
+		enumr = KeycloakEnumerator(config)
+		results = enumr.run()
+	console.print(Panel.fit("[bold]Enumeration Results[/bold]", border_style="magenta"))
 	table = Table(show_header=True, header_style="bold magenta")
 	table.add_column("Key")
 	table.add_column("Value")
@@ -69,10 +100,11 @@ def enumerate(ctx):
 def audit(ctx):
 	"""Run configuration audit checks."""
 	config: AuditorConfig = ctx.obj["config"]
-	auditor = AuditRunner(config)
-	findings = auditor.run()
-	console.print(f"[bold]Audit Findings: {len(findings)}[/bold]")
+	with console.status("Running audit checks..."):
+		auditor = AuditRunner(config)
+		findings = auditor.run()
 	(Path(config.output_dir) / "audit.json").write_text(json.dumps(findings, indent=2))
+	_print_findings_table("Audit Findings", findings)
 
 
 @main.command()
@@ -81,10 +113,11 @@ def audit(ctx):
 def scan(ctx, workflow):
 	"""Run Nuclei scans against Keycloak using local templates."""
 	config: AuditorConfig = ctx.obj["config"]
-	scanner = NucleiScanner(config)
-	results = scanner.run(use_workflow=workflow)
-	console.print(f"[bold]Nuclei Findings: {len(results)}[/bold]")
+	with console.status("Running nuclei scans..."):
+		scanner = NucleiScanner(config)
+		results = scanner.run(use_workflow=workflow)
 	(Path(config.output_dir) / "nuclei.json").write_text(json.dumps(results, indent=2))
+	_print_findings_table("Nuclei Findings", results)
 
 
 @main.command()
@@ -92,10 +125,11 @@ def scan(ctx, workflow):
 def exploit(ctx):
 	"""Attempt safe exploitation for selected vulnerabilities."""
 	config: AuditorConfig = ctx.obj["config"]
-	exp = ExploitationRunner(config)
-	results = exp.run()
-	console.print(f"[bold]Exploitation Attempts: {len(results)}[/bold]")
+	with console.status("Attempting safe exploitation..."):
+		exp = ExploitationRunner(config)
+		results = exp.run()
 	(Path(config.output_dir) / "exploitation.json").write_text(json.dumps(results, indent=2))
+	_print_findings_table("Exploitation Attempts", results)
 
 
 @main.command(name="report")
@@ -103,8 +137,9 @@ def exploit(ctx):
 def report_cmd(ctx):
 	"""Generate final markdown and JSON reports."""
 	config: AuditorConfig = ctx.obj["config"]
-	reporter = ReportGenerator(config)
-	output = reporter.generate()
+	with console.status("Generating report..."):
+		reporter = ReportGenerator(config)
+		output = reporter.generate()
 	console.print(f"[bold]Report generated at[/bold] {output}")
 
 
