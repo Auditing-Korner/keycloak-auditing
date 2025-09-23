@@ -12,12 +12,15 @@ A modular Python framework to audit the security of Keycloak. It integrates Nucl
 - [Overview](#overview)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quickstart](#quickstart)
 - [Usage](#usage)
 - [Configuration & Performance](#configuration--performance)
 - [Wordlists](#wordlists)
 - [Outputs](#outputs)
+- [Support Matrix](#support-matrix)
+- [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [Security & Responsible Use](#security--responsible-use)
@@ -46,13 +49,23 @@ Keycloak Auditor helps security professionals assess Keycloak deployments. It co
                        \______________ Exploit (safe) _____________/
 ```
 
-## Installation
-
+## Prerequisites
 - Python 3.10+
-- Optional: Nuclei binary on PATH (`nuclei`) or specify via `--nuclei-path`
+- Optional: Nuclei binary installed (`nuclei` on PATH) or provide via `--nuclei-path`
+- Network access to the target Keycloak base URL
+- Authorization to test the target
+
+## Installation
 
 ```bash
 pip install -e .
+# or using the pinned requirements file
+pip install -r requirements.txt
+```
+
+Windows (PowerShell):
+```powershell
+python -m pip install -e .
 ```
 
 ## Quickstart
@@ -94,6 +107,16 @@ keycloak-auditor \
   enumerate
 ```
 
+Authenticated Nuclei scanning (token header is added automatically when `--token` is set):
+```bash
+keycloak-auditor \
+  --base-url https://kc.example.com \
+  --realm master \
+  --token $ACCESS_TOKEN \
+  --nuclei-templates nuclei-templates \
+  scan --workflow
+```
+
 ## Usage
 Performance and safety flags:
 - `--rate-limit`: HTTP/Nuclei requests per second (default 5)
@@ -132,6 +155,16 @@ The scanner composes target URLs into `audit-output/targets.txt` and uses `-l` f
 - `audit-output/nuclei.json`, `audit-output/nuclei.jsonl`, `audit-output/targets.txt`
 - `audit-output/exploitation.json`
 - `audit-output/report.md`, `audit-output/report.json`
+
+## Support Matrix
+- Keycloak: modern versions 18+ (tested primarily against 20+). Older endpoints may differ.
+- Platforms: Linux, macOS, Windows (PowerShell). Nuclei required for scanning features.
+
+## Troubleshooting
+- Nuclei not found: install from `https://github.com/projectdiscovery/nuclei` or pass `--nuclei-path`.
+- Timeout/connection errors: increase `--timeout`, reduce `--rate-limit`, or check network/SSL; use `--insecure` for lab/self-signed.
+- Limited enumeration: provide `--token` or `--client-id/--client-secret` for admin API access.
+- Empty findings: ensure `--nuclei-templates` points to a directory with Keycloak templates/workflows.
 
 ## Roadmap
 - Deeper configuration checks (password/MFA/brute-force policies, cookies/CSP/HSTS)
