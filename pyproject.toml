@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "keycloak-auditor"
 version = "0.1.0"
 description = "Modular Keycloak security auditing framework with Nuclei integration"
-authors = [{name = "Security Team"}]
+authors = [{name = "RFS Team"}]
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
