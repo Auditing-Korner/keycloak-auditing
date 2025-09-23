@@ -1,0 +1,4 @@
+title: Keycloak Auditor
+theme: jekyll-theme-hacker
+description: Modular Keycloak security auditing framework with Nuclei integration
+show_downloads: false

@@ -1,6 +1,6 @@
 id: keycloak-security-workflow
 info:
   name: Keycloak Security Workflow
-  author: framework
+  author: rfs85
   severity: info
   description: Workflow entry for Keycloak scanning using wordlists and templates.
