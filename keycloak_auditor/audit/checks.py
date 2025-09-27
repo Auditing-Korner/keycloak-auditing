@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 
 from ..core.config import AuditorConfig
 from ..core.http import ThrottledRequester
+from ..plugins.manager import PluginManager
 
 
 class AuditRunner:
@@ -157,5 +158,14 @@ class AuditRunner:
 
 		# SAML metadata checks
 		findings.extend(self._saml_metadata_check())
+
+		# Run audit plugins
+		try:
+			plugin_manager = PluginManager(self.config)
+			plugin_manager.load_plugins()
+			plugin_findings = plugin_manager.run_audit_plugins()
+			findings.extend(plugin_findings)
+		except Exception:
+			pass
 
 		return findings

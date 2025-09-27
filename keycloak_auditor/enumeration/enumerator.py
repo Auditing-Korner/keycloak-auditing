@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 
 from ..core.config import AuditorConfig
 from ..core.http import ThrottledRequester
+from ..plugins.manager import PluginManager
 
 
 class KeycloakEnumerator:
@@ -114,5 +115,15 @@ class KeycloakEnumerator:
 			result["admin_console_status"] = admin_resp.status_code
 		except Exception:
 			result["admin_console_status"] = None
+
+		# Run enumeration plugins
+		try:
+			plugin_manager = PluginManager(self.config)
+			plugin_manager.load_plugins()
+			plugin_results = plugin_manager.run_enumeration_plugins()
+			if plugin_results:
+				result["plugin_enumeration"] = plugin_results
+		except Exception:
+			pass
 
 		return result

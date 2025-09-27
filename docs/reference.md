@@ -27,5 +27,10 @@
 - `scan [--workflow]`: Run Nuclei scans
 - `exploit`: Attempt safe exploitation
 - `report [--format]`: Generate reports (markdown/html/sarif/all)
+- `compliance [--framework]`: Generate compliance reports (cis/owasp/all)
+- `baseline-create [--name] [--description]`: Create baseline from current results
+- `baseline-list`: List available baselines
+- `baseline-compare [--baseline]`: Compare current state with baseline
+- `plugins-list`: List available plugins
 - `full [--workflow]`: Run complete pipeline
 - `selftest [--pytest-args]`: Run test suite

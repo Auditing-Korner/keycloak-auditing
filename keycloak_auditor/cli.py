@@ -16,6 +16,9 @@ from .exploitation.poc import ExploitationRunner
 from .report.generator import ReportGenerator
 from .report.html_generator import HTMLReportGenerator
 from .export.sarif import SARIFExporter
+from .compliance.reporter import ComplianceReporter
+from .baseline.manager import BaselineManager
+from .plugins.manager import PluginManager
 
 console = Console()
 
@@ -214,6 +217,103 @@ def full(ctx, workflow):
 	config: AuditorConfig = ctx.obj["config"]
 	console.rule("[bold green]Full Pipeline")
 	_run_full_pipeline(config, workflow)
+
+
+@main.command()
+@click.option("--framework", type=click.Choice(["cis", "owasp", "all"]), default="all", help="Compliance framework")
+@click.pass_context
+def compliance(ctx, framework):
+	"""Generate compliance report (CIS/OWASP)."""
+	config: AuditorConfig = ctx.obj["config"]
+	with console.status("Generating compliance report..."):
+		reporter = ComplianceReporter(config)
+		output = reporter.generate_report(framework)
+	console.print(f"[bold]Compliance report generated:[/bold] {output}")
+
+
+@main.command()
+@click.option("--name", required=True, help="Baseline name")
+@click.option("--description", default="", help="Baseline description")
+@click.pass_context
+def baseline_create(ctx, name, description):
+	"""Create a baseline from current scan results."""
+	config: AuditorConfig = ctx.obj["config"]
+	with console.status("Creating baseline..."):
+		manager = BaselineManager(config)
+		output = manager.create_baseline(name, description)
+	console.print(f"[bold]Baseline created:[/bold] {output}")
+
+
+@main.command()
+@click.pass_context
+def baseline_list(ctx):
+	"""List all available baselines."""
+	config: AuditorConfig = ctx.obj["config"]
+	manager = BaselineManager(config)
+	baselines = manager.list_baselines()
+	
+	if not baselines:
+		console.print("[yellow]No baselines found[/yellow]")
+		return
+	
+	table = Table(title="Available Baselines", show_header=True, header_style="bold cyan")
+	table.add_column("Name")
+	table.add_column("Created")
+	table.add_column("Description")
+	table.add_column("Target")
+	
+	for baseline in baselines:
+		metadata = baseline["metadata"]
+		table.add_row(
+			baseline["name"],
+			metadata["created_at"][:10],  # Date only
+			metadata.get("description", ""),
+			f"{metadata['base_url']} ({metadata['realm']})"
+		)
+	
+	console.print(table)
+
+
+@main.command()
+@click.option("--baseline", required=True, help="Baseline name to compare against")
+@click.pass_context
+def baseline_compare(ctx, baseline):
+	"""Compare current scan results with a baseline."""
+	config: AuditorConfig = ctx.obj["config"]
+	with console.status("Comparing with baseline..."):
+		manager = BaselineManager(config)
+		output = manager.generate_drift_report(baseline)
+	console.print(f"[bold]Drift report generated:[/bold] {output}")
+
+
+@main.command()
+@click.pass_context
+def plugins_list(ctx):
+	"""List all available plugins."""
+	config: AuditorConfig = ctx.obj["config"]
+	manager = PluginManager(config)
+	manager.load_plugins()
+	plugins = manager.list_plugins()
+	
+	if not plugins:
+		console.print("[yellow]No plugins found[/yellow]")
+		return
+	
+	table = Table(title="Available Plugins", show_header=True, header_style="bold cyan")
+	table.add_column("Name")
+	table.add_column("Version")
+	table.add_column("Type")
+	table.add_column("Description")
+	
+	for plugin in plugins:
+		table.add_row(
+			plugin["name"],
+			plugin["version"],
+			plugin["type"],
+			plugin["description"]
+		)
+	
+	console.print(table)
 
 
 @main.command()

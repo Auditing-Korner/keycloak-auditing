@@ -116,6 +116,41 @@ keycloak-auditor --base-url https://kc.example.com --realm master report --forma
 keycloak-auditor --base-url https://kc.example.com --realm master report --format sarif
 ```
 
+Generate compliance reports:
+```bash
+# All frameworks (CIS + OWASP)
+keycloak-auditor --base-url https://kc.example.com --realm master compliance
+
+# CIS Controls only
+keycloak-auditor --base-url https://kc.example.com --realm master compliance --framework cis
+
+# OWASP ASVS only
+keycloak-auditor --base-url https://kc.example.com --realm master compliance --framework owasp
+```
+
+Baseline management and drift detection:
+```bash
+# Create baseline after initial scan
+keycloak-auditor --base-url https://kc.example.com --realm master full --workflow
+keycloak-auditor --base-url https://kc.example.com --realm master baseline-create --name "initial-scan" --description "Baseline after initial security scan"
+
+# List available baselines
+keycloak-auditor --base-url https://kc.example.com --realm master baseline-list
+
+# Compare current state with baseline (detect drift)
+keycloak-auditor --base-url https://kc.example.com --realm master full --workflow
+keycloak-auditor --base-url https://kc.example.com --realm master baseline-compare --baseline "initial-scan"
+```
+
+Plugin management:
+```bash
+# List available plugins
+keycloak-auditor --base-url https://kc.example.com --realm master plugins-list
+
+# Plugins are automatically loaded and executed during scans
+keycloak-auditor --base-url https://kc.example.com --realm master full --workflow
+```
+
 See [CLI Reference](docs/reference.md) for all options.
 
 ## Configuration & Performance
@@ -149,6 +184,12 @@ The scanner composes target URLs into `audit-output/targets.txt` and uses `-l` f
 - `audit-output/report.md`, `audit-output/report.json`
 - `audit-output/report.html` (interactive with charts)
 - `audit-output/report.sarif` (for CI/CD integration)
+- `audit-output/compliance-{framework}.md` (compliance reports)
+- `audit-output/compliance-{framework}.json` (compliance data)
+- `audit-output/baselines/` (baseline snapshots)
+- `audit-output/drift-{baseline}.md` (drift reports)
+- `audit-output/drift-{baseline}.json` (drift data)
+- `plugins/` (custom plugin directory)
 
 ## Support Matrix
 - Keycloak: modern versions 18+ (tested primarily against 20+). Older endpoints may differ.

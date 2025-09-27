@@ -9,6 +9,9 @@ Keycloak Auditor is a modular security auditing framework for Keycloak. It integ
 - **Safe Exploitation**: Non-destructive PoCs and validation checks
 - **CVE Mapping**: Version-based vulnerability matching
 - **Multi-format Reports**: Markdown, HTML (with charts), SARIF for CI/CD
+- **Compliance Mapping**: CIS Controls and OWASP ASVS compliance reporting
+- **Baseline Comparison**: Track configuration drift over time
+- **Plugin System**: Extensible architecture for custom checks and enumeration
 
 ## Quick Start
 ```bash
@@ -25,3 +28,4 @@ keycloak-auditor --base-url https://kc.example.com --realm master report --forma
 ## Documentation
 - [Tutorial](tutorial.md) - Complete walkthrough
 - [CLI Reference](reference.md) - All commands and options
+- [Plugin System](plugins.md) - Extending the framework with custom plugins
