@@ -12,7 +12,7 @@ class PluginManager:
 	
 	def __init__(self, config):
 		self.config = config
-		self.plugins_dir = Path("plugins")
+		self.plugins_dir = Path(__file__).parent.parent.parent / "plugins"
 		self.loaded_plugins: Dict[str, BasePlugin] = {}
 	
 	def _discover_plugins(self) -> List[Path]:
@@ -29,12 +29,13 @@ class PluginManager:
 	
 	def _load_plugin_class(self, plugin_file: Path) -> Type[BasePlugin]:
 		"""Load a plugin class from a file."""
+		# Ensure we load from the absolute path to avoid shadowing/CWD issues
 		module_name = f"plugins.{plugin_file.stem}"
 		
-		# Add plugins directory to Python path
-		plugins_path = str(self.plugins_dir.parent)
-		if plugins_path not in sys.path:
-			sys.path.insert(0, plugins_path)
+		# Add plugins directory's parent to Python path if not already there
+		plugins_parent = str(self.plugins_dir.parent.absolute())
+		if plugins_parent not in sys.path:
+			sys.path.insert(0, plugins_parent)
 		
 		try:
 			module = importlib.import_module(module_name)

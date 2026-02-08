@@ -100,6 +100,59 @@ class AuditRunner:
 			return findings
 		return findings
 
+	def _session_cookie_check(self) -> List[Dict[str, Any]]:
+		"""Check for secure flags on session cookies (AUTH_SESSION_ID, etc.)."""
+		findings: List[Dict[str, Any]] = []
+		try:
+			# Probe the realm login page to trigger cookie setting
+			url = f"{self.config.base_url}/realms/{self.config.realm}/protocol/openid-connect/auth"
+			params = {
+				"client_id": "account",
+				"response_type": "code",
+				"redirect_uri": "https://example.com",
+			}
+			resp = self.http.request("GET", url, params=params, allow_redirects=False)
+			
+			cookies = resp.cookies
+			# Common Keycloak session cookies
+			target_cookies = {"AUTH_SESSION_ID", "KC_RESTART", "KEYCLOAK_IDENTITY"}
+			
+			for cookie in cookies:
+				if any(tc in cookie.name for tc in target_cookies):
+					# Check flags
+					missing_flags = []
+					if not cookie.secure and not self.config.base_url.startswith("http://"):
+						missing_flags.append("Secure")
+					if not cookie.has_nonstandard_attr("HttpOnly") and not getattr(cookie, "httpOnly", True): # requests.cookies.Cookie may vary
+						# requests doesn't always expose HttpOnly easily in the object, check raw header if needed
+						pass 
+
+			# Better approach: check raw Set-Cookie headers
+			set_cookies = [v for k, v in resp.headers.items() if k.lower() == "set-cookie"]
+			for sc in set_cookies:
+				if any(tc in sc for tc in target_cookies):
+					findings_for_cookie = []
+					if "secure" not in sc.lower() and not self.config.base_url.startswith("http://"):
+						findings_for_cookie.append("Secure")
+					if "httponly" not in sc.lower():
+						findings_for_cookie.append("HttpOnly")
+					if "samesite" not in sc.lower():
+						findings_for_cookie.append("SameSite")
+					
+					if findings_for_cookie:
+						findings.append({
+							"id": "insecure_session_cookie",
+							"title": f"Session cookie missing security flags: {', '.join(findings_for_cookie)}",
+							"severity": "high" if "Secure" in findings_for_cookie or "HttpOnly" in findings_for_cookie else "medium",
+							"evidence": sc,
+							"remediation": f"Ensure session cookies preserve {', '.join(findings_for_cookie)} flags; check reverse proxy and Keycloak 'ssl-required' or 'samesite' settings.",
+						})
+						# Only report once per cookie type
+						break 
+		except Exception:
+			pass
+		return findings
+
 	def run(self) -> List[Dict[str, Any]]:
 		findings: List[Dict[str, Any]] = []
 		# Transport & headers quick checks
@@ -130,8 +183,8 @@ class AuditRunner:
 						"severity": "low",
 						"remediation": "Set X-Frame-Options: DENY or use CSP frame-ancestors.",
 					})
-		except Exception:
-			pass
+		except Exception as e:
+			print(f"Warning: Failed to fetch well-known configuration for auditing: {e}")
 
 		# Admin console exposure
 		try:
@@ -155,6 +208,9 @@ class AuditRunner:
 		redir = self._redirect_uri_exact_match_check()
 		if redir:
 			findings.append(redir)
+
+		# Session cookie checks
+		findings.extend(self._session_cookie_check())
 
 		# SAML metadata checks
 		findings.extend(self._saml_metadata_check())

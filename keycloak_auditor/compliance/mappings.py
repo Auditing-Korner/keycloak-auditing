@@ -122,52 +122,46 @@ def get_compliance_checks(framework: Optional[str] = None) -> List[ComplianceChe
 
 def map_findings_to_compliance(findings: List[Dict], checks: List[ComplianceCheck]) -> Dict[str, List[Dict]]:
 	"""Map audit findings to compliance controls."""
-	compliance_results = {}
-	
-	for check in checks:
-		compliance_results[check.control_id] = {
+	compliance_results = {
+		check.control_id: {
 			"check": check,
 			"status": "unknown",
 			"findings": [],
 			"pass_count": 0,
 			"fail_count": 0
 		}
+		for check in checks
+	}
 	
-	# Simple mapping based on finding IDs and descriptions
+	# Map finding IDs/patterns to compliance description keywords
+	# This mapping can be expanded as new findings are added
+	ID_TO_KEYWORD_MAP = {
+		"transport_insecure": "https",
+		"missing_csp": "header",
+		"missing_xfo": "header",
+		"admin_console_exposed": "admin",
+		"pkce_not_enforced": "pkce",
+		"redirect_uri_permissive": "redirect",
+		"saml_assertions_not_signed": "saml",
+		"insecure_session_cookie": "session",
+	}
+	
 	for finding in findings:
 		finding_id = finding.get("id", "").lower()
-		finding_title = finding.get("title", "").lower()
 		
+		# Find the keyword for this finding ID
+		keyword = next((kw for fid, kw in ID_TO_KEYWORD_MAP.items() if fid in finding_id), None)
+		if not keyword:
+			continue
+
+		# Map finding to all relevant checks containing the keyword
 		for check in checks:
-			check_id = check.control_id.lower()
-			
-			# Map based on finding patterns
-			if "transport_insecure" in finding_id and "https" in check.description.lower():
+			if keyword in check.description.lower() or keyword in check.title.lower():
 				compliance_results[check.control_id]["findings"].append(finding)
 				compliance_results[check.control_id]["fail_count"] += 1
-			elif "missing_csp" in finding_id or "missing_xfo" in finding_id:
-				if "header" in check.description.lower():
-					compliance_results[check.control_id]["findings"].append(finding)
-					compliance_results[check.control_id]["fail_count"] += 1
-			elif "admin_console_exposed" in finding_id:
-				if "admin" in check.description.lower():
-					compliance_results[check.control_id]["findings"].append(finding)
-					compliance_results[check.control_id]["fail_count"] += 1
-			elif "pkce_not_enforced" in finding_id:
-				if "pkce" in check.description.lower():
-					compliance_results[check.control_id]["findings"].append(finding)
-					compliance_results[check.control_id]["fail_count"] += 1
-			elif "redirect_uri_permissive" in finding_id:
-				if "redirect" in check.description.lower():
-					compliance_results[check.control_id]["findings"].append(finding)
-					compliance_results[check.control_id]["fail_count"] += 1
-			elif "saml_assertions_not_signed" in finding_id:
-				if "saml" in check.description.lower():
-					compliance_results[check.control_id]["findings"].append(finding)
-					compliance_results[check.control_id]["fail_count"] += 1
 	
 	# Determine pass/fail status
-	for control_id, result in compliance_results.items():
+	for result in compliance_results.values():
 		if result["fail_count"] > 0:
 			result["status"] = "fail"
 		elif result["pass_count"] > 0:

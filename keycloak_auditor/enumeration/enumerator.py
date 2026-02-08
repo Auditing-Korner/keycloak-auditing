@@ -78,8 +78,8 @@ class KeycloakEnumerator:
 						vers = info.get("systemInfo", {}).get("version") or info.get("version")
 						if vers:
 							result["server_version"] = vers
-			except Exception:
-				pass
+			except Exception as e:
+				print(f"Warning: Failed to fetch server info: {e}")
 
 		realms: List[str] = []
 		if token:

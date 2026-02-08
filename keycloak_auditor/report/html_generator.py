@@ -3,6 +3,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List
 
+from jinja2 import Template
+
 from ..core.config import AuditorConfig
 from ..cve.database import get_cves_for_version
 
@@ -245,7 +247,7 @@ class HTMLReportGenerator:
 		kc_version = self._extract_version(enumeration)
 		cves = get_cves_for_version(kc_version) if kc_version else []
 
-		html = HTML_TEMPLATE.format(
+		html = Template(HTML_TEMPLATE).render(
 			base_url=self.config.base_url,
 			realm=self.config.realm,
 			version=kc_version,

@@ -58,10 +58,22 @@ Keycloak Auditor helps security professionals assess Keycloak deployments. It co
 
 ## Installation
 
+### Prerequisites
+- Python 3.10+
+- [Nuclei](https://github.com/projectdiscovery/nuclei) (optional, for scanning)
+
+### Quick Start
 ```bash
-pip install -e .
-# or using the pinned requirements file
+# Clone the repository
+git clone https://github.com/AuditingKorner/keycloak-auditor.git
+cd keycloak-auditor
+
+# Install dependencies
 pip install -r requirements.txt
+
+# (Optional) Install AWS Pentest Tools
+# Helper script located in scripts/
+bash scripts/install_aws_tools.sh
 ```
 
 Windows (PowerShell):
@@ -203,11 +215,12 @@ The scanner composes target URLs into `audit-output/targets.txt` and uses `-l` f
 - AI flags ignored: verify your Nuclei build supports `-ai`, and that AI credentials/env are configured.
 
 ## Roadmap
-- Deeper configuration checks (password/MFA/brute-force policies, cookies/CSP/HSTS)
-- Authenticated Nuclei runs with token/header injection
-- OIDC/SAML flow validations (PKCE, redirect URI strictness, token lifetime)
-- HTML/PDF reports, SARIF/CSV export, CVE mapping by Keycloak version
-- CI integration and baseline/suppressions
+- [x] **Core**: Enumeration, Audit, and Scan modules
+- [x] **Reporting**: Interactive HTML reports with charts
+- [x] **Data**: Real Keycloak CVE database
+- [x] **Compliance**: CIS and OWASP ASVS mapping
+- [ ] **AI**: Enhanced Nuclei AI integration
+- [ ] **Cloud**: AWS/Azure specific checks
 
 ## Contributing
 Contributions are welcome! Please:
