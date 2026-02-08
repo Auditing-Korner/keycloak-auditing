@@ -1,4 +1,5 @@
 # Plugin System
+**Author: RFS**
 
 The Keycloak Auditor framework includes a plugin system that allows you to extend functionality with custom checks, enumeration, and exploitation techniques.
 

@@ -1,4 +1,5 @@
 # Tutorial
+**Author: RFS**
 
 This tutorial walks through using Keycloak Auditor to assess a Keycloak deployment.
 
@@ -54,6 +55,35 @@ keycloak-auditor \
   enumerate
 ```
 
+  enumerate
+```
+
+## Compliance Reporting
+Generate specific compliance reports for CIS and OWASP ASVS standards:
+```bash
+# Generate all compliance reports
+keycloak-auditor --base-url https://kc.example.com --realm master compliance
+
+# Generate CIS Controls report only
+keycloak-auditor --base-url https://kc.example.com --realm master compliance --framework cis
+```
+Artifacts created: `audit-output/compliance-cis.md`, `audit-output/compliance-owasp.md`.
+
+## Baseline Management
+Track changes over time by creating baselines:
+
+1. **Create a baseline** from a scan:
+```bash
+keycloak-auditor --base-url https://kc.example.com --realm master full --workflow
+keycloak-auditor --base-url https://kc.example.com --realm master baseline-create --name "initial-state"
+```
+
+2. **Compare future scans** against the baseline to detect drift:
+```bash
+keycloak-auditor --base-url https://kc.example.com --realm master baseline-compare --baseline "initial-state"
+```
+Drift reports are saved to `audit-output/drift-initial-state.md`.
+
 ## Performance and Safety
 - `--rate-limit` controls HTTP/Nuclei RPS (default 5). Increase cautiously.
 - `--timeout` controls request timeout.
@@ -70,6 +100,8 @@ Artifacts written to `audit-output/` by default:
 - `report.md` and `report.json`: Consolidated report
 - `report.html`: Interactive HTML report with charts
 - `report.sarif`: SARIF format for CI/CD integration
+- `compliance-{framework}.md`: Compliance reports (CIS/OWASP)
+- `drift-{baseline}.md`: Drift detection reports
 
 ## Report Formats
 Generate different report formats:

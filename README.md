@@ -30,11 +30,13 @@ A modular Python framework to audit the security of Keycloak. It integrates Nucl
 Keycloak Auditor helps security professionals assess Keycloak deployments. It combines public discovery with authenticated checks (when provided), leverages local Nuclei templates/workflows for vulnerability detection, safely demonstrates select issues, and produces actionable reports.
 
 ## Key Features
-- Enumeration: OIDC discovery, realms, clients/roles/groups/IDPs/flows counts (with token)
-- Configuration Audit: HTTPS, security headers, admin console exposure, and more
-- Vulnerability Scanning: Runs local Nuclei templates/workflows against targets (with optional AI guidance)
-- Safe Exploitation: Non-destructive PoCs to validate suspicious findings
-- Reporting: Consolidated Markdown and JSON reports with severity breakdowns
+- **Enumeration**: OIDC discovery, realms, clients/roles/groups/IDPs/flows counts (with token)
+- **Configuration Audit**: HTTPS, security headers, admin console exposure, session cookie security, and more
+- **Vulnerability Scanning**: Runs local Nuclei templates/workflows against targets (with optional AI guidance)
+- **Real-World Data**: Integrated database of actual Keycloak CVEs (e.g., CVE-2022-1245) for accurate version assessment
+- **Compliance Mapping**: Automated mapping of findings to CIS and OWASP ASVS controls
+- **Safe Exploitation**: Non-destructive PoCs to validate suspicious findings
+- **Reporting**: Consolidated interactive HTML, Markdown, and JSON reports
 
 ## Architecture
 - CLI (`keycloak_auditor/cli.py`) orchestrates stages: enumerate → audit → scan → exploit → report

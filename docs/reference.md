@@ -1,4 +1,5 @@
 # CLI Reference
+**Author: RFS**
 
 ## Global Options
 - `--base-url TEXT` (required)
@@ -34,3 +35,7 @@
 - `plugins-list`: List available plugins
 - `full [--workflow]`: Run complete pipeline
 - `selftest [--pytest-args]`: Run test suite
+
+## Scripts
+Located in `scripts/`:
+- `install_aws_tools.sh`: Helper script to install AWS penetration testing tools (Pacu, Prowler, etc.) and required dependencies.
